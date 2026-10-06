@@ -1,3 +1,4 @@
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:material_ui/material_ui.dart';
 
 class BottomNavBar extends StatelessWidget {
@@ -12,43 +13,49 @@ class BottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    return SizedBox(
+      height: 80 + MediaQuery.paddingOf(context).bottom,
+      child: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        currentIndex: currentIndex,
+        onTap: onTap,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        selectedItemColor: const Color(0xFF243B53),
+        unselectedItemColor: const Color(0xFFA8A8A8),
+        selectedFontSize: 12,
+        unselectedFontSize: 12,
+        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
+        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
+        showUnselectedLabels: true,
+        items: [
+          _buildItem(label: 'My place', assetName: 'my_place'),
+          _buildItem(label: 'Reports', assetName: 'reports'),
+          _buildItem(label: 'Home', assetName: 'home'),
+          _buildItem(label: 'Assistant', assetName: 'assistant'),
+          _buildItem(label: 'My Page', assetName: 'my_page'),
+        ],
+      ),
+    );
+  }
 
-    return BottomNavigationBar(
-      type: BottomNavigationBarType.fixed,
-      currentIndex: currentIndex,
-      onTap: onTap,
-      selectedItemColor: colorScheme.primary,
-      unselectedItemColor: colorScheme.onSurfaceVariant,
-      selectedFontSize: 10,
-      unselectedFontSize: 10,
-      showUnselectedLabels: true,
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.apartment_outlined),
-          activeIcon: Icon(Icons.apartment),
-          label: 'My place',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.description_outlined),
-          activeIcon: Icon(Icons.description),
-          label: 'Reports',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home_outlined),
-          activeIcon: Icon(Icons.home),
-          label: 'Home',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.support_agent),
-          label: 'Assistant',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline),
-          activeIcon: Icon(Icons.person),
-          label: 'My Page',
-        ),
-      ],
+  // 각 탭의 기본·선택 아이콘 연결
+  BottomNavigationBarItem _buildItem({
+    required String label,
+    required String assetName,
+  }) {
+    return BottomNavigationBarItem(
+      icon: SvgPicture.asset(
+        'assets/icons/bottom_nav/${assetName}_unselected.svg',
+        width: 28,
+        height: 28,
+      ),
+      activeIcon: SvgPicture.asset(
+        'assets/icons/bottom_nav/${assetName}_selected.svg',
+        width: 28,
+        height: 28,
+      ),
+      label: label,
     );
   }
 }
