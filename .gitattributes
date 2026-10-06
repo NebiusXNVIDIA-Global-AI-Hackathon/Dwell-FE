@@ -1,0 +1,20 @@
+# 모든 텍스트 파일을 저장소에 LF 로 저장
+# Windows(CRLF) 와 macOS(LF) 혼용으로 "한 줄 바꿨는데 파일 전체가 diff" 되는 것 방지
+* text=auto eol=lf
+
+# Windows 전용 스크립트는 CRLF 유지
+*.bat   text eol=crlf
+*.ps1   text eol=crlf
+*.cmd   text eol=crlf
+
+# 바이너리 — diff 시도 금지
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.webp      binary
+*.ico       binary
+*.ttf       binary
+*.otf       binary
+*.woff2     binary
+*.jks       binary
+*.keystore  binary
