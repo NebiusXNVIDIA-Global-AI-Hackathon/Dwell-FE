@@ -1,4 +1,3 @@
-import 'package:google_fonts/google_fonts.dart';
 import 'package:material_ui/material_ui.dart';
 
 abstract final class Gap {
@@ -14,16 +13,14 @@ const _seedColor = Color(0xFF243B53);
 
 ThemeData buildTheme(Brightness brightness) {
   return ThemeData(
-    //페이지 배경색 따로 설정
+    fontFamily: 'Pretendard Variable',
+    //아래는 페이지 배경색 따로 설정
     scaffoldBackgroundColor: brightness == Brightness.light
         ? const Color(0xFFF8F8F8)
         : null,
     colorScheme: ColorScheme.fromSeed(
       seedColor: _seedColor,
       brightness: brightness,
-    ),
-    textTheme: GoogleFonts.notoSansKrTextTheme(
-      ThemeData(brightness: brightness).textTheme,
     ),
   );
 }
