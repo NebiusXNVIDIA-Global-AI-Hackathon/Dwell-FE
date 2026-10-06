@@ -1,7 +1,5 @@
 # 🏠 Dwell-Frontend
 
-언어 장벽이 있는 세입자를 대신해, 요청부터 해결 확인까지 끝까지 챙기는 **Proactive Case Agent**.
-
 Nebius × NVIDIA Global AI Hackathon을 위한 Dwell Frontend 프로젝트입니다.
 이 문서는 Flutter 개발 환경, 프로젝트 구조 및 협업 규칙을 정리합니다.
 
