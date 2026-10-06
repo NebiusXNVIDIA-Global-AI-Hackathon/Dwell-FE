@@ -1,12 +1,12 @@
 import 'package:material_ui/material_ui.dart';
 
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+class MyPlacePage extends StatelessWidget {
+  const MyPlacePage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      body: SafeArea(child: Center(child: Text('Home'))),
+      body: SafeArea(child: Center(child: Text('MyPlacePage'))),
     );
   }
 }
