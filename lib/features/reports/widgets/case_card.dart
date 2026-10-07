@@ -62,20 +62,15 @@ class CaseCard extends StatelessWidget {
                       semanticsLabel: caseItem.isPublic ? 'Public' : 'Private',
                     ),
                   ),
-                  if (caseItem.isVideo)
+                  //영상 조건문
+                  if (caseItem.representativeEvidence?.mediaType ==
+                      CaseMediaType.video)
                     Center(
-                      child: Container(
+                      child: SvgPicture.asset(
+                        'assets/icons/case/play.svg',
                         width: 32,
                         height: 32,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.4),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.play_arrow_rounded,
-                          color: Colors.white,
-                          size: 24,
-                        ),
+                        semanticsLabel: 'Video evidence',
                       ),
                     ),
                   Positioned(
@@ -147,7 +142,28 @@ class CaseCard extends StatelessWidget {
   }
 
   Widget _buildThumbnail(ColorScheme colors) {
-    final source = caseItem.thumbnailUrl;
+    final evidence = caseItem.representativeEvidence;
+
+    if (evidence == null) {
+      return _placeholder(colors);
+    }
+
+    // 최초 업로드한 증거가 음성이면 파형 SVG 표시
+    if (evidence.mediaType == CaseMediaType.audio) {
+      return ColoredBox(
+        color: colors.surfaceContainerHighest,
+        child: Center(
+          child: SvgPicture.asset(
+            'assets/icons/case/audio.svg',
+            width: 64,
+            semanticsLabel: 'Audio evidence',
+          ),
+        ),
+      );
+    }
+
+    // 사진 또는 영상의 미리보기 이미지
+    final source = evidence.thumbnailUrl;
 
     if (source == null || source.trim().isEmpty) {
       return _placeholder(colors);
