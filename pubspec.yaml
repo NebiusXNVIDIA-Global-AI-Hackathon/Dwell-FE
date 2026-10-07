@@ -47,6 +47,7 @@ dependencies:
   intl: ^0.20.3
   fquery_core: ^3.1.0
   material_ui: ^1.5.0
+  lucide_icons_flutter: ^3.1.22
 
 dev_dependencies:
   flutter_test:
@@ -76,6 +77,7 @@ flutter:
     - assets/images/
     - assets/icons/
     - assets/icons/bottom_nav/
+    - assets/icons/case/
 
   fonts:
     - family: Pretendard Variable

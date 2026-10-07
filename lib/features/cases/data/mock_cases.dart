@@ -1,0 +1,118 @@
+import '../models/case_model.dart';
+
+const mockImageUrl =
+    'https://image.dongascience.com/Photo/2016/04/14615691445761.jpg';
+
+final List<CaseModel> mockCases = [
+  CaseModel(
+    id: 'mock-case-001',
+    title: 'Water leaking from the ceiling',
+    status: CaseStatus.logged,
+    severity: CaseSeverity.high,
+    issueType: 'Water Intrusion',
+    location: 'Bathroom',
+    affectedArea: 'Ceiling',
+    isPublic: true,
+    createdAt: DateTime(2026, 10, 1, 9),
+    updatedAt: DateTime(2026, 10, 7, 9),
+    evidenceList: [
+      CaseEvidence(
+        id: 'mock-evidence-001',
+        mediaType: CaseMediaType.image,
+        uploadedAt: DateTime(2026, 10, 1, 9),
+        thumbnailUrl: mockImageUrl,
+      ),
+    ],
+  ),
+  CaseModel(
+    id: 'mock-case-002',
+    title: 'Mold spreading on the wall',
+    status: CaseStatus.logged,
+    severity: CaseSeverity.medium,
+    issueType: 'Mold',
+    location: 'Bedroom',
+    affectedArea: 'Wall',
+    isPublic: false,
+    createdAt: DateTime(2026, 10, 2, 14),
+    updatedAt: DateTime(2026, 10, 6, 16),
+    evidenceList: [
+      CaseEvidence(
+        id: 'mock-evidence-002',
+        mediaType: CaseMediaType.video,
+        uploadedAt: DateTime(2026, 10, 2, 14),
+        thumbnailUrl: mockImageUrl,
+      ),
+      CaseEvidence(
+        id: 'mock-evidence-003',
+        mediaType: CaseMediaType.image,
+        uploadedAt: DateTime(2026, 10, 2, 14, 5),
+      ),
+      CaseEvidence(
+        id: 'mock-evidence-004',
+        mediaType: CaseMediaType.audio,
+        uploadedAt: DateTime(2026, 10, 2, 14, 10),
+      ),
+    ],
+  ),
+  CaseModel(
+    id: 'mock-case-003',
+    title: 'Water dripping under the sink',
+    status: CaseStatus.logged,
+    severity: CaseSeverity.low,
+    issueType: 'Water Intrusion',
+    location: 'Bathroom',
+    affectedArea: 'Under Sink',
+    isPublic: false,
+    createdAt: DateTime(2026, 10, 3, 11),
+    updatedAt: DateTime(2026, 10, 5, 10),
+  ),
+  CaseModel(
+    id: 'mock-case-004',
+    title: 'Heating pipes knocking inside the wall',
+    status: CaseStatus.logged,
+    severity: CaseSeverity.medium,
+    issueType: 'Heating',
+    location: 'Bathroom',
+    affectedArea: 'Wall',
+    isPublic: true,
+    createdAt: DateTime(2026, 10, 4, 8),
+    updatedAt: DateTime(2026, 10, 4, 15),
+    evidenceList: [
+      CaseEvidence(
+        id: 'mock-evidence-005',
+        mediaType: CaseMediaType.audio,
+        uploadedAt: DateTime(2026, 10, 4, 8),
+        thumbnailUrl: mockImageUrl,
+      ),
+      CaseEvidence(
+        id: 'mock-evidence-006',
+        mediaType: CaseMediaType.image,
+        uploadedAt: DateTime(2026, 10, 4, 8, 5),
+      ),
+    ],
+  ),
+  CaseModel(
+    id: 'mock-case-005',
+    title: 'Living room radiator not heating',
+    status: CaseStatus.resolved,
+    severity: CaseSeverity.low,
+    issueType: 'Heating',
+    location: 'Living Room',
+    affectedArea: 'Wall',
+    isPublic: true,
+    createdAt: DateTime(2026, 9, 25, 10),
+    updatedAt: DateTime(2026, 10, 3, 13),
+  ),
+  CaseModel(
+    id: 'mock-case-006',
+    title: 'Large crack spreading across the wall',
+    status: CaseStatus.resolved,
+    severity: CaseSeverity.high,
+    issueType: 'Wall damage',
+    location: 'Bedroom',
+    affectedArea: 'Wall',
+    isPublic: false,
+    createdAt: DateTime(2026, 9, 28, 17),
+    updatedAt: DateTime(2026, 10, 2, 12),
+  ),
+];
