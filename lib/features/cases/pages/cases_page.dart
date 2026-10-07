@@ -14,7 +14,6 @@ import '../widgets/list/case_search_tabs.dart';
 import '../widgets/list/case_sort_menu.dart';
 
 import 'package:go_router/go_router.dart';
-import 'package:dwell/core/widgets/primary_action_button.dart';
 
 class CasesPage extends StatefulWidget {
   const CasesPage({super.key});
@@ -295,7 +294,8 @@ class _CasesPageState extends State<CasesPage> {
             // 카드 목록 또는 빈 상태
             Expanded(
               child: visibleCases.isEmpty
-                  ? Center(
+                  ? Align(
+                      alignment: const Alignment(0, -0.2),
                       child: Padding(
                         padding: const EdgeInsets.all(24),
                         child: Text(
