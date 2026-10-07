@@ -6,9 +6,15 @@ import '../models/case_model.dart';
 
 class CaseCard extends StatelessWidget {
   final CaseModel caseItem;
+  final bool isSelected;
   final VoidCallback? onTap;
 
-  const CaseCard({super.key, required this.caseItem, this.onTap});
+  const CaseCard({
+    super.key,
+    required this.caseItem,
+    this.isSelected = false,
+    this.onTap,
+  });
 
   String get _badgeLabel {
     if (caseItem.status == CaseStatus.resolved) {
@@ -35,7 +41,10 @@ class CaseCard extends StatelessWidget {
       color: colors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Color(0xFFE5E5E5), width: 1),
+        side: BorderSide(
+          color: isSelected ? const Color(0xFF243B53) : const Color(0xFFE5E5E5),
+          width: 1,
+        ),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -66,7 +75,6 @@ class CaseCard extends StatelessWidget {
                       semanticsLabel: caseItem.isPublic ? 'Public' : 'Private',
                     ),
                   ),
-                  //영상 조건문
                   if (caseItem.representativeEvidence?.mediaType ==
                       CaseMediaType.video)
                     Center(
@@ -131,7 +139,7 @@ class CaseCard extends StatelessWidget {
                   ),
                   Text(
                     DateFormat('M/d/yyyy').format(caseItem.createdAt),
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Color(0xFF667685),
                       fontSize: 10,
                       fontWeight: FontWeight.w500,

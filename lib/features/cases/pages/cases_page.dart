@@ -25,7 +25,7 @@ class _CasesPageState extends State<CasesPage> {
   CaseStatus? _selectedStatus; // null = All
   CaseFilters _appliedFilters = CaseFilters();
   CaseSortOrder _selectedSortOrder = CaseSortOrder.newest;
-
+  String? _selectedCaseId;
   List<CaseModel> get _matchingCases {
     final query = _searchQuery.trim().toLowerCase();
 
@@ -275,6 +275,12 @@ class _CasesPageState extends State<CasesPage> {
                                     child: CaseCard(
                                       key: ValueKey(item.id),
                                       caseItem: item,
+                                      isSelected: _selectedCaseId == item.id,
+                                      onTap: () {
+                                        setState(() {
+                                          _selectedCaseId = item.id;
+                                        });
+                                      },
                                     ),
                                   ),
                               ],
