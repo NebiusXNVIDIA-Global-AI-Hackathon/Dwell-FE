@@ -42,7 +42,7 @@ class _ReportsPageState extends State<ReportsPage> {
       useRootNavigator: true,
       useSafeArea: true,
       isScrollControlled: true,
-      showDragHandle: true,
+      showDragHandle: false,
       backgroundColor: colors.surface,
       clipBehavior: Clip.antiAlias,
       shape: const RoundedRectangleBorder(
