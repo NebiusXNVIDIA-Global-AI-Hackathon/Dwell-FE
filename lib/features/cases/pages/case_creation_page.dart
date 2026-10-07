@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../widgets/creation/case_creation_header.dart';
+import '../widgets/creation/case_creation_bottom.dart';
 
 class CaseCreationPage extends StatefulWidget {
   const CaseCreationPage({super.key});
@@ -39,8 +40,12 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
               ),
               const SizedBox(height: 20),
 
-              // 다음 작업: 단계별 입력 화면
+              // 단계별 입력 화면
               const Expanded(child: SizedBox.expand()),
+              const SizedBox(height: 16),
+
+              // 하단 버튼
+              const CaseCreationBottom(enabled: false, onNext: null),
             ],
           ),
         ),
