@@ -1,5 +1,6 @@
 import 'package:dwell/core/widgets/profile_avatar.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../data/mock_cases.dart';
 import '../models/case_filters.dart';
@@ -165,7 +166,11 @@ class _ReportsPageState extends State<ReportsPage> {
                           ),
                         ),
                       ),
-                      icon: const Icon(Icons.filter_alt_outlined, size: 28),
+                      icon: Icon(
+                        LucideIcons.funnel,
+                        color: textColor,
+                        size: 28,
+                      ),
                     ),
                   ),
                 ],

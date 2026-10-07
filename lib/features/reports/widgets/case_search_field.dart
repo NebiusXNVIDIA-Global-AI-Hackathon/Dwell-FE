@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class CaseSearchField extends StatelessWidget {
   final ValueChanged<String> onChanged;
@@ -17,10 +18,10 @@ class CaseSearchField extends StatelessWidget {
       decoration: InputDecoration(
         hintText: 'Search Cases',
         hintStyle: TextStyle(color: Color(0xFFA8A8A8), fontSize: 16),
-        prefixIcon: Icon(
-          Icons.search,
-          color: colors.onSurfaceVariant,
-          size: 24,
+        prefixIcon: const Icon(
+          LucideIcons.search500,
+          color: Color(0xFF667685),
+          size: 28,
         ),
         filled: true,
         fillColor: isLight
