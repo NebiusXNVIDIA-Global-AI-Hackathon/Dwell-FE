@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
-import '../models/case_model.dart';
+import '../../models/case_model.dart';
 
 class CaseStatusTabs extends StatelessWidget {
   final List<CaseModel> cases;

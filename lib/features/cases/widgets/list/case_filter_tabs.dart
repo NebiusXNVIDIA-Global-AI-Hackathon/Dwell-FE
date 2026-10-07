@@ -2,7 +2,7 @@ import 'dart:ui' show PointerDeviceKind;
 
 import 'package:material_ui/material_ui.dart';
 
-import '../models/case_filters.dart';
+import '../../models/case_filters.dart';
 
 class CaseFilterTags extends StatefulWidget {
   final CaseFilters filters;
