@@ -25,8 +25,8 @@ class BottomNavBar extends StatelessWidget {
         unselectedItemColor: const Color(0xFFA8A8A8),
         selectedFontSize: 12,
         unselectedFontSize: 12,
-        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
-        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
+        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w800),
+        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
         showUnselectedLabels: true,
         items: [
           _buildItem(label: 'My place', assetName: 'my_place'),
