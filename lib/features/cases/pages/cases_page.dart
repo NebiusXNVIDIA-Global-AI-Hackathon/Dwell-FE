@@ -164,6 +164,8 @@ class _CasesPageState extends State<CasesPage> {
                       tooltip: 'Filter Cases',
                       onPressed: _openFilters,
                       style: ButtonStyle(
+                        fixedSize: const WidgetStatePropertyAll(Size(48, 56)),
+                        visualDensity: VisualDensity.standard,
                         backgroundColor: WidgetStateProperty.resolveWith<Color>(
                           (states) {
                             if (states.contains(WidgetState.pressed)) {
