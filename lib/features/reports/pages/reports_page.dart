@@ -52,7 +52,7 @@ class _ReportsPageState extends State<ReportsPage> {
       },
     );
 
-    // 바깥 탭, 뒤로 가기, 아래로 드래그하면 null. 적용값을 변경하지 않는다.
+    // 바깥 탭, 뒤로 가기, 아래로 드래그하면 null. 적용값을 변경하지 않음
     if (!mounted || result == null) return;
 
     setState(() {
@@ -113,7 +113,7 @@ class _ReportsPageState extends State<ReportsPage> {
                     style: TextStyle(
                       color: textColor,
                       fontSize: 40,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
                       letterSpacing: -1.2,
                     ),
                   ),
