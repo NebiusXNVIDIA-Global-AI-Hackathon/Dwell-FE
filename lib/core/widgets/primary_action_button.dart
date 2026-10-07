@@ -26,26 +26,19 @@ class PrimaryActionButton extends StatelessWidget {
           if (states.contains(WidgetState.disabled)) {
             return const Color(0xFFE3E3E3);
           }
+
           if (states.contains(WidgetState.pressed)) {
-            return const Color(0xFF1D4142);
+            return const Color(0xFF1E4344);
           }
-          return const Color(0xFF2B5962);
+
+          return const Color(0xFF2B575F);
         }),
         foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
           return states.contains(WidgetState.disabled)
               ? const Color(0xFF929292)
               : Colors.white;
         }),
-        overlayColor: WidgetStateProperty.resolveWith<Color?>((states) {
-          if (states.contains(WidgetState.pressed)) {
-            return Colors.transparent;
-          }
-          if (states.contains(WidgetState.focused) ||
-              states.contains(WidgetState.hovered)) {
-            return Colors.white.withValues(alpha: 0.08);
-          }
-          return null;
-        }),
+        overlayColor: const WidgetStatePropertyAll(Colors.transparent),
         shape: WidgetStatePropertyAll(
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),

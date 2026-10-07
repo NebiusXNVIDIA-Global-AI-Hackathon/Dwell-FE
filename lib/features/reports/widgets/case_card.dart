@@ -33,6 +33,10 @@ class CaseCard extends StatelessWidget {
       margin: EdgeInsets.zero,
       elevation: 0,
       color: colors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: Color(0xFFE5E5E5), width: 1),
+      ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
@@ -82,6 +86,7 @@ class CaseCard extends StatelessWidget {
                         vertical: 2,
                       ),
                       decoration: ShapeDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
                         shape: const StadiumBorder(
                           side: BorderSide(color: Colors.white),
                         ),
@@ -127,7 +132,7 @@ class CaseCard extends StatelessWidget {
                   Text(
                     DateFormat('M/d/yyyy').format(caseItem.createdAt),
                     style: TextStyle(
-                      color: colors.onSurfaceVariant,
+                      color: Color(0xFF667685),
                       fontSize: 10,
                       fontWeight: FontWeight.w500,
                     ),

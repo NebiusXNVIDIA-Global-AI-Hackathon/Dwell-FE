@@ -16,7 +16,7 @@ class CaseSearchField extends StatelessWidget {
       style: TextStyle(color: colors.onSurface, fontSize: 14),
       decoration: InputDecoration(
         hintText: 'Search Cases',
-        hintStyle: TextStyle(color: colors.onSurfaceVariant, fontSize: 14),
+        hintStyle: TextStyle(color: Color(0xFFA8A8A8), fontSize: 16),
         prefixIcon: Icon(
           Icons.search,
           color: colors.onSurfaceVariant,

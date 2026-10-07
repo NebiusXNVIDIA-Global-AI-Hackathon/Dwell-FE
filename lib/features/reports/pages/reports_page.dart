@@ -138,21 +138,34 @@ class _ReportsPageState extends State<ReportsPage> {
                   SizedBox(
                     width: 48,
                     height: 56,
-                    child: Material(
-                      color: isLight
-                          ? const Color(0xFFC4CCD3)
-                          : colors.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(10),
-                      clipBehavior: Clip.antiAlias,
-                      child: IconButton(
-                        tooltip: 'Filter Cases',
-                        onPressed: _openFilters,
-                        icon: Icon(
-                          Icons.filter_alt_outlined,
-                          color: textColor,
-                          size: 28,
+                    child: IconButton(
+                      tooltip: 'Filter Cases',
+                      onPressed: _openFilters,
+                      style: ButtonStyle(
+                        backgroundColor: WidgetStateProperty.resolveWith<Color>(
+                          (states) {
+                            if (states.contains(WidgetState.pressed)) {
+                              return isLight
+                                  ? const Color(0xFFC0C6CC)
+                                  : colors.surfaceContainerHigh;
+                            }
+
+                            return isLight
+                                ? const Color(0xFFE4E8EC)
+                                : colors.surfaceContainerHighest;
+                          },
+                        ),
+                        foregroundColor: WidgetStatePropertyAll(textColor),
+                        overlayColor: const WidgetStatePropertyAll(
+                          Colors.transparent,
+                        ),
+                        shape: WidgetStatePropertyAll(
+                          RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
                       ),
+                      icon: const Icon(Icons.filter_alt_outlined, size: 28),
                     ),
                   ),
                 ],
