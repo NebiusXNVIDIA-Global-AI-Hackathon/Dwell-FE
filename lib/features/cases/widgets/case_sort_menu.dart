@@ -52,7 +52,10 @@ class _CaseSortMenuState extends State<CaseSortMenu> {
         offset: const Offset(0, 4),
         padding: EdgeInsets.zero,
         menuPadding: EdgeInsets.zero,
-        constraints: const BoxConstraints(minWidth: 110, maxWidth: 110),
+        constraints: BoxConstraints(
+          minWidth: 110,
+          maxWidth: MediaQuery.sizeOf(context).width,
+        ),
         color: isLight ? Colors.white : colors.surface,
         surfaceTintColor: Colors.transparent,
         elevation: 6,
@@ -85,12 +88,14 @@ class _CaseSortMenuState extends State<CaseSortMenu> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      order.label,
-                      style: TextStyle(
-                        color: textColor,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                    Flexible(
+                      child: Text(
+                        order.label,
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -113,24 +118,28 @@ class _CaseSortMenuState extends State<CaseSortMenu> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                'Sort by ',
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
+              Flexible(
+                child: Text(
+                  'Sort by ',
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
-              Text(
-                widget.selectedOrder.label,
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 13, // 여기만 12 → 13
-                  fontWeight: FontWeight.w700,
-                  decoration: _isOpen || _isHovered
-                      ? TextDecoration.underline
-                      : TextDecoration.none,
-                  decorationColor: textColor,
+              Flexible(
+                child: Text(
+                  widget.selectedOrder.label,
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 13, // 여기만 12 → 13
+                    fontWeight: FontWeight.w700,
+                    decoration: _isOpen || _isHovered
+                        ? TextDecoration.underline
+                        : TextDecoration.none,
+                    decorationColor: textColor,
+                  ),
                 ),
               ),
               const SizedBox(width: 6),

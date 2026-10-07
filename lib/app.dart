@@ -15,7 +15,7 @@ class DwellApp extends ConsumerWidget {
       routerConfig: ref.watch(routerProvider),
       theme: buildTheme(Brightness.light),
       darkTheme: buildTheme(Brightness.dark),
-      themeMode: ThemeMode.system,
+      themeMode: ThemeMode.light,
     );
   }
 }

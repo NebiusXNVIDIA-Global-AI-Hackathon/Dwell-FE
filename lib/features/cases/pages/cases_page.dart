@@ -261,7 +261,12 @@ class _CasesPageState extends State<CasesPage> {
                       padding: const EdgeInsets.all(16),
                       child: LayoutBuilder(
                         builder: (context, constraints) {
-                          final cardWidth = (constraints.maxWidth - 16) / 3;
+                          final columns = (constraints.maxWidth - 16) / 3 < 114
+                              ? 2
+                              : 3;
+                          final cardWidth =
+                              (constraints.maxWidth - 8 * (columns - 1)) /
+                              columns;
 
                           return Align(
                             alignment: Alignment.topLeft,

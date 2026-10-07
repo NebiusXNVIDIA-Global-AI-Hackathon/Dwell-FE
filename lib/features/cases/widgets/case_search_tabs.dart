@@ -81,7 +81,9 @@ class CaseStatusTabs extends StatelessWidget {
           (sum, width) => sum + width,
         );
 
-        final gap = ((constraints.maxWidth - totalWidth) / 3)
+        final needsScroll = totalWidth > constraints.maxWidth;
+        final contentWidth = needsScroll ? totalWidth : constraints.maxWidth;
+        final gap = ((contentWidth - totalWidth) / 3)
             .clamp(0.0, double.infinity)
             .toDouble();
 
@@ -92,52 +94,64 @@ class CaseStatusTabs extends StatelessWidget {
         final isRtl = Directionality.of(context) == TextDirection.rtl;
         final leadingOffset = beforeWidth + gap * selectedIndex;
         final indicatorLeft = isRtl
-            ? constraints.maxWidth - leadingOffset - labelWidths[selectedIndex]
+            ? contentWidth - leadingOffset - labelWidths[selectedIndex]
             : leadingOffset;
 
-        return Stack(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                for (var index = 0; index < tabs.length; index++)
-                  Semantics(
-                    button: true,
-                    selected: selectedStatus == tabs[index].status,
-                    child: InkWell(
-                      onTap: () => onChanged(tabs[index].status),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: verticalPadding,
-                        ),
+        final tabContent = SizedBox(
+          width: contentWidth,
+          child: Stack(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  for (var index = 0; index < tabs.length; index++)
+                    Semantics(
+                      button: true,
+                      selected: selectedStatus == tabs[index].status,
+                      child: InkWell(
+                        onTap: () => onChanged(tabs[index].status),
                         child: Padding(
-                          padding: const EdgeInsets.only(
-                            bottom: underlineGap + underlineWidth,
+                          padding: const EdgeInsets.symmetric(
+                            vertical: verticalPadding,
                           ),
-                          child: AnimatedDefaultTextStyle(
-                            duration: duration,
-                            curve: curve,
-                            style: styles[index],
-                            child: Text(labels[index]),
+                          child: Padding(
+                            padding: const EdgeInsets.only(
+                              bottom: underlineGap + underlineWidth,
+                            ),
+                            child: AnimatedDefaultTextStyle(
+                              duration: duration,
+                              curve: curve,
+                              style: styles[index],
+                              child: Text(
+                                labels[index],
+                                maxLines: 1,
+                                softWrap: false,
+                              ),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-              ],
-            ),
+                ],
+              ),
 
-            // 밑줄 하나가 선택한 탭 아래로 이동한다.
-            AnimatedPositioned(
-              duration: duration,
-              curve: curve,
-              left: indicatorLeft,
-              bottom: verticalPadding,
-              width: labelWidths[selectedIndex],
-              height: underlineWidth,
-              child: IgnorePointer(child: ColoredBox(color: selectedColor)),
-            ),
-          ],
+              // 밑줄 하나가 선택한 탭 아래로 이동한다.
+              AnimatedPositioned(
+                duration: duration,
+                curve: curve,
+                left: indicatorLeft,
+                bottom: verticalPadding,
+                width: labelWidths[selectedIndex],
+                height: underlineWidth,
+                child: IgnorePointer(child: ColoredBox(color: selectedColor)),
+              ),
+            ],
+          ),
+        );
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: needsScroll ? null : const NeverScrollableScrollPhysics(),
+          child: tabContent,
         );
       },
     );
