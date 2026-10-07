@@ -12,6 +12,7 @@ class CaseModel {
   final String affectedArea;
   final bool isPublic;
   final String? thumbnailUrl;
+  final bool isVideo;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -25,6 +26,7 @@ class CaseModel {
     required this.affectedArea,
     required this.isPublic,
     this.thumbnailUrl,
+    this.isVideo = false,
     required this.createdAt,
     required this.updatedAt,
   });

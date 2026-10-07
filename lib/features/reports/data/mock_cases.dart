@@ -12,6 +12,7 @@ final List<CaseModel> mockCases = [
     isPublic: true,
     createdAt: DateTime(2026, 10, 1, 9),
     updatedAt: DateTime(2026, 10, 7, 9),
+    isVideo: true,
   ),
   CaseModel(
     id: 'mock-case-002',
@@ -24,6 +25,7 @@ final List<CaseModel> mockCases = [
     isPublic: false,
     createdAt: DateTime(2026, 10, 2, 14),
     updatedAt: DateTime(2026, 10, 6, 16),
+    isVideo: true,
   ),
   CaseModel(
     id: 'mock-case-003',
@@ -36,6 +38,7 @@ final List<CaseModel> mockCases = [
     isPublic: false,
     createdAt: DateTime(2026, 10, 3, 11),
     updatedAt: DateTime(2026, 10, 5, 10),
+    isVideo: true,
   ),
   CaseModel(
     id: 'mock-case-004',
@@ -48,6 +51,7 @@ final List<CaseModel> mockCases = [
     isPublic: true,
     createdAt: DateTime(2026, 10, 4, 8),
     updatedAt: DateTime(2026, 10, 4, 15),
+    isVideo: true,
   ),
   CaseModel(
     id: 'mock-case-005',
@@ -60,6 +64,7 @@ final List<CaseModel> mockCases = [
     isPublic: true,
     createdAt: DateTime(2026, 9, 25, 10),
     updatedAt: DateTime(2026, 10, 3, 13),
+    isVideo: true,
   ),
   CaseModel(
     id: 'mock-case-006',
@@ -72,5 +77,6 @@ final List<CaseModel> mockCases = [
     isPublic: false,
     createdAt: DateTime(2026, 9, 28, 17),
     updatedAt: DateTime(2026, 10, 2, 12),
+    isVideo: true,
   ),
 ];
