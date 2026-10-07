@@ -70,7 +70,7 @@ class CaseFilters {
     return _replace(group, next);
   }
 
-  /// Set 비교이므로 선택한 순서가 달라도 같은 조건으로 판단한다.
+  /// Set 비교이므로 선택한 순서가 달라도 같은 조건으로 판단
   bool sameAs(CaseFilters other) {
     return CaseFilterGroup.values.every((group) {
       final current = selectedFor(group);
@@ -92,8 +92,6 @@ class CaseFilters {
       CaseFilterGroup.visibility: item.isPublic ? 'Public' : 'Private',
     };
 
-    // 같은 그룹은 OR, 서로 다른 그룹은 AND.
-    // 선택하지 않은 그룹은 조건을 제한하지 않는다.
     return CaseFilterGroup.values.every((group) {
       final selected = selectedFor(group);
       return selected.isEmpty || selected.contains(values[group]);

@@ -30,7 +30,7 @@ class BottomNavBar extends StatelessWidget {
         showUnselectedLabels: true,
         items: [
           _buildItem(label: 'My place', assetName: 'my_place'),
-          _buildItem(label: 'Reports', assetName: 'reports'),
+          _buildItem(label: 'Cases', assetName: 'cases'),
           _buildItem(label: 'Home', assetName: 'home'),
           _buildItem(label: 'Assistant', assetName: 'assistant'),
           _buildItem(label: 'My Page', assetName: 'my_page'),

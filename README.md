@@ -91,8 +91,8 @@ FE/
 │   │   │   └── my_page.dart
 │   │   ├── my_place/
 │   │   │   └── my_place_page.dart
-│   │   ├── reports/
-│   │   │   └── reports_page.dart
+│   │   ├── cases/
+│   │   │   └── pages/cases_page.dart
 │   │   └── splash/
 │   │       └── splash_page.dart
 │   ├── shared/
@@ -134,7 +134,7 @@ FE/
 | --- | --- | --- |
 | Splash | `/splash` | 미표시 |
 | My place | `/my-place` | 표시 |
-| Reports | `/reports` | 표시 |
+| Cases | `/cases` | 표시 |
 | Home | `/home` | 표시 |
 | Assistant | `/assistant` | 표시 |
 | My Page | `/my-page` | 표시 |
@@ -143,7 +143,7 @@ FE/
 - `/`에 접근하면 `/home`으로 이동합니다.
 - 메인 탭은 `StatefulShellRoute.indexedStack` 하위에 구성합니다.
 - 공통 화면 틀은 `MainLayout`, 하단바 UI는 `BottomNavBar`에서 관리합니다.
-- 탭 순서는 **My place → Reports → Home → Assistant → My Page**입니다.
+- 탭 순서는 **My place → Cases → Home → Assistant → My Page**입니다.
 - 하단바 없는 화면은 공통 탭 라우트 밖에 추가합니다.
 
 ---
@@ -164,12 +164,12 @@ FE/
 
 ```text
 feat/#10/login
-feat/#11/report-registration
+feat/#11/case-registration
 ui/#12/login-form
 ui/#13/home-page
 ui/#14/bottom-navigation
 api/#45/fetch-user-profile
-api/#46/report-api
+api/#46/case-api
 ```
 
 ## 작성 규칙

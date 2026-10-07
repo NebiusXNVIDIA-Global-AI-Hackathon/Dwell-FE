@@ -13,14 +13,14 @@ import '../widgets/case_search_field.dart';
 import '../widgets/case_search_tabs.dart';
 import '../widgets/case_sort_menu.dart';
 
-class ReportsPage extends StatefulWidget {
-  const ReportsPage({super.key});
+class CasesPage extends StatefulWidget {
+  const CasesPage({super.key});
 
   @override
-  State<ReportsPage> createState() => _ReportsPageState();
+  State<CasesPage> createState() => _CasesPageState();
 }
 
-class _ReportsPageState extends State<ReportsPage> {
+class _CasesPageState extends State<CasesPage> {
   String _searchQuery = '';
   CaseStatus? _selectedStatus; // null = All
   CaseFilters _appliedFilters = CaseFilters();

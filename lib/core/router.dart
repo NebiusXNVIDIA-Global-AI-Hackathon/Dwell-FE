@@ -6,7 +6,7 @@ import '../features/assistant/assistant_page.dart';
 import '../features/home/home_page.dart';
 import '../features/my_page/my_page.dart';
 import '../features/my_place/my_place_page.dart';
-import '../features/reports/pages/reports_page.dart';
+import '../features/cases/pages/cases_page.dart';
 import '../features/splash/splash_page.dart';
 import 'layouts/main_layout.dart';
 
@@ -39,8 +39,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/reports',
-                builder: (context, state) => const ReportsPage(),
+                path: '/cases',
+                name: 'cases',
+                builder: (context, state) => const CasesPage(),
               ),
             ],
           ),
