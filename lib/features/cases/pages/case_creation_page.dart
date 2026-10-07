@@ -1,8 +1,9 @@
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../widgets/creation/case_creation_header.dart';
 import '../widgets/creation/case_creation_bottom.dart';
+import '../widgets/creation/case_creation_header.dart';
+import '../widgets/creation/steps/issue_type_step.dart';
 
 class CaseCreationPage extends StatefulWidget {
   const CaseCreationPage({super.key});
@@ -13,6 +14,7 @@ class CaseCreationPage extends StatefulWidget {
 
 class _CaseCreationPageState extends State<CaseCreationPage> {
   final int _currentStep = 1;
+  String? _selectedIssueType;
 
   void _handleBack() {
     if (context.canPop()) {
@@ -40,12 +42,26 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
               ),
               const SizedBox(height: 20),
 
-              // 단계별 입력 화면
-              const Expanded(child: SizedBox.expand()),
+              // 1단계: 문제 유형 선택
+              Expanded(
+                child: IssueTypeStep(
+                  selectedIssueType: _selectedIssueType,
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedIssueType = value;
+                    });
+                  },
+                ),
+              ),
               const SizedBox(height: 16),
 
               // 하단 버튼
-              const CaseCreationBottom(enabled: false, onNext: null),
+              CaseCreationBottom(
+                enabled: _selectedIssueType != null,
+                onNext: () {
+                  // 다음 작업에서 2단계 화면 이동 연결
+                },
+              ),
             ],
           ),
         ),
