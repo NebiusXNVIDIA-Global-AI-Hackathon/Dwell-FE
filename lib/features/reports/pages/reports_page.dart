@@ -1,15 +1,17 @@
 import 'package:dwell/core/widgets/profile_avatar.dart';
-import 'package:material_ui/material_ui.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../data/mock_cases.dart';
 import '../models/case_filters.dart';
 import '../models/case_model.dart';
+import '../models/case_sort_order.dart';
 import '../widgets/case_card.dart';
 import '../widgets/case_filter_sheet.dart';
 import '../widgets/case_filter_tabs.dart';
 import '../widgets/case_search_field.dart';
 import '../widgets/case_search_tabs.dart';
+import '../widgets/case_sort_menu.dart';
 
 class ReportsPage extends StatefulWidget {
   const ReportsPage({super.key});
@@ -22,6 +24,7 @@ class _ReportsPageState extends State<ReportsPage> {
   String _searchQuery = '';
   CaseStatus? _selectedStatus; // null = All
   CaseFilters _appliedFilters = CaseFilters();
+  CaseSortOrder _selectedSortOrder = CaseSortOrder.newest;
 
   List<CaseModel> get _matchingCases {
     final query = _searchQuery.trim().toLowerCase();
@@ -29,6 +32,7 @@ class _ReportsPageState extends State<ReportsPage> {
     return mockCases.where((item) {
       final matchesSearch =
           query.isEmpty || item.title.toLowerCase().startsWith(query);
+
       return matchesSearch && _appliedFilters.matches(item);
     }).toList();
   }
@@ -53,7 +57,7 @@ class _ReportsPageState extends State<ReportsPage> {
       },
     );
 
-    // 바깥 탭, 뒤로 가기, 아래로 드래그하면 null. 적용값을 변경하지 않음
+    // 적용하지 않고 닫으면 기존 필터를 유지한다.
     if (!mounted || result == null) return;
 
     setState(() {
@@ -75,6 +79,7 @@ class _ReportsPageState extends State<ReportsPage> {
 
   String _emptyMessage(List<CaseModel> matchingCases) {
     if (matchingCases.isEmpty) return 'No cases found.';
+
     return switch (_selectedStatus) {
       CaseStatus.active => "You don't have any active cases.",
       CaseStatus.logged => "You don't have any logged cases.",
@@ -88,22 +93,36 @@ class _ReportsPageState extends State<ReportsPage> {
     final colors = Theme.of(context).colorScheme;
     final isLight = colors.brightness == Brightness.light;
     final textColor = isLight ? const Color(0xFF243B53) : colors.onSurface;
+
     final topInset = MediaQuery.paddingOf(context).top;
     final headerTopPadding = (77.0 - topInset).clamp(0.0, 77.0).toDouble();
 
     // 탭 숫자는 검색·필터 결과로 계산한다.
     final matchingCases = _matchingCases;
-    // 카드 목록만 선택한 상태 탭으로 제한한다.
-    final visibleCases = _selectedStatus == null
-        ? matchingCases
-        : matchingCases
-              .where((item) => item.status == _selectedStatus)
-              .toList();
+
+    // 선택한 상태에 해당하는 목록을 복사한 후 생성일로 정렬한다.
+    final visibleCases =
+        matchingCases
+            .where(
+              (item) =>
+                  _selectedStatus == null || item.status == _selectedStatus,
+            )
+            .toList()
+          ..sort((a, b) {
+            final comparison = switch (_selectedSortOrder) {
+              CaseSortOrder.newest => b.createdAt.compareTo(a.createdAt),
+              CaseSortOrder.oldest => a.createdAt.compareTo(b.createdAt),
+            };
+
+            // 생성일이 같아도 표시 순서를 일정하게 유지한다.
+            return comparison != 0 ? comparison : a.id.compareTo(b.id);
+          });
 
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
+            // 헤더
             Padding(
               padding: EdgeInsets.fromLTRB(24, headerTopPadding, 24, 16),
               child: Row(
@@ -122,6 +141,8 @@ class _ReportsPageState extends State<ReportsPage> {
                 ],
               ),
             ),
+
+            // 검색 및 필터 버튼
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
@@ -176,7 +197,10 @@ class _ReportsPageState extends State<ReportsPage> {
                 ],
               ),
             ),
+
             const SizedBox(height: 12),
+
+            // 상태 탭
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: CaseStatusTabs(
@@ -189,6 +213,8 @@ class _ReportsPageState extends State<ReportsPage> {
                 },
               ),
             ),
+
+            // 적용된 필터
             if (_appliedFilters.hasSelection)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -198,6 +224,24 @@ class _ReportsPageState extends State<ReportsPage> {
                   onReset: _resetFilters,
                 ),
               ),
+
+            // 정렬 메뉴
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: CaseSortMenu(
+                  selectedOrder: _selectedSortOrder,
+                  onChanged: (order) {
+                    setState(() {
+                      _selectedSortOrder = order;
+                    });
+                  },
+                ),
+              ),
+            ),
+
+            // 카드 목록 또는 빈 상태
             Expanded(
               child: visibleCases.isEmpty
                   ? Center(
@@ -218,6 +262,7 @@ class _ReportsPageState extends State<ReportsPage> {
                       child: LayoutBuilder(
                         builder: (context, constraints) {
                           final cardWidth = (constraints.maxWidth - 16) / 3;
+
                           return Align(
                             alignment: Alignment.topLeft,
                             child: Wrap(

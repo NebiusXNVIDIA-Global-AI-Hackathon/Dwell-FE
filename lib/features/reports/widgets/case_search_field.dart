@@ -16,6 +16,7 @@ class CaseSearchField extends StatelessWidget {
       maxLines: 1,
       style: TextStyle(color: colors.onSurface, fontSize: 14),
       decoration: InputDecoration(
+        constraints: const BoxConstraints.tightFor(height: 56),
         hintText: 'Search Cases',
         hintStyle: TextStyle(color: Color(0xFFA8A8A8), fontSize: 16),
         prefixIcon: const Icon(
