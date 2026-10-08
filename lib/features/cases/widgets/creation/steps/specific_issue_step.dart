@@ -47,9 +47,9 @@ class SpecificIssueStep extends StatelessWidget {
           const Text(
             'Select the issue that best describes the problem',
             style: TextStyle(
-              color: Color(0xFF627381),
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
+              color: Color(0xFF637381),
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 20),

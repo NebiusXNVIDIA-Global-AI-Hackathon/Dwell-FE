@@ -111,7 +111,7 @@ class _CaseFilterTagsState extends State<CaseFilterTags> {
                             Padding(
                               padding: const EdgeInsets.only(right: 8),
                               child: InputChip(
-                                key: ValueKey(tag.group.name + ':' + tag.value),
+                                key: ValueKey('${tag.group.name}:${tag.value}'),
                                 label: Text(tag.value),
                                 onDeleted: () =>
                                     widget.onRemove(tag.group, tag.value),
