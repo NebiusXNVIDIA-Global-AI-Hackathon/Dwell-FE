@@ -1,3 +1,6 @@
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:material_ui/material_ui.dart';
+
 abstract final class CaseCreationOptions {
   static const Map<String, String> issueTypes = {
     'Heat & Hot Water': 'assets/icons/issues/heat.svg',
@@ -104,8 +107,30 @@ abstract final class CaseCreationOptions {
       'Other',
     ],
   };
+  // 3단계: 문제 발생 위치
+  static const Map<String, IconData> locations = {
+    'Bathroom': LucideIcons.bath,
+    'Kitchen': LucideIcons.cookingPot,
+    'Living Room': LucideIcons.house,
+    'Bedroom': LucideIcons.bedDouble,
+    'Laundry Area': LucideIcons.towelRack,
+    'Balcony': LucideIcons.fence,
+    'Entire Unit': LucideIcons.mapPinHouse,
+    'Exterior': LucideIcons.building2,
+    'Other': LucideIcons.messageSquareMore,
+  };
 
   static bool requiresOtherInput(String? issue) {
     return issue == 'Other' || issue == 'Other Appliance';
+  }
+
+  // Other 위치는 직접 입력 필요
+  static bool requiresOtherLocationInput(String? location) {
+    return location == 'Other';
+  }
+
+  // Entire Unit은 부위 선택 단계 생략
+  static bool skipsAffectedArea(String? location) {
+    return location == 'Entire Unit';
   }
 }

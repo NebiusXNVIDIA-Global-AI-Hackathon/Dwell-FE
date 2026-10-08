@@ -7,6 +7,7 @@ import '../widgets/creation/case_creation_header.dart';
 import '../widgets/creation/dialogs/case_exit_dialog.dart';
 import '../widgets/creation/dialogs/safety_notice_dialog.dart';
 import '../widgets/creation/steps/issue_type_step.dart';
+import '../widgets/creation/steps/location_step.dart';
 import '../widgets/creation/steps/specific_issue_step.dart';
 
 class CaseCreationPage extends StatefulWidget {
@@ -17,10 +18,11 @@ class CaseCreationPage extends StatefulWidget {
 }
 
 class _CaseCreationPageState extends State<CaseCreationPage> {
-  // 현재 단계와 선택한 문제 정보
+  // 현재 단계와 선택한 정보
   int _currentStep = 1;
   String? _selectedIssueType;
   String? _selectedSpecificIssue;
+  String? _selectedLocation;
 
   // 모달 중복 표시 방지
   bool _isSafetyNoticeOpen = false;
@@ -29,32 +31,80 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
   // Leave 선택 후 페이지 종료 허용
   bool _allowLeave = false;
 
+  // 문제와 위치의 직접 입력을 각각 관리
   final TextEditingController _otherIssueController = TextEditingController();
+  final TextEditingController _otherLocationController =
+      TextEditingController();
+
+  // 단계별 헤더 제목
+  String get _stepTitle {
+    switch (_currentStep) {
+      case 1:
+        return 'Issue Type';
+      case 2:
+        return 'Specify Issue';
+      case 3:
+        return 'Issue Location';
+      default:
+        return 'New Case';
+    }
+  }
+
+  // Other 문제는 입력한 내용을 요약에 표시
+  String get _issueSummary {
+    final specificIssue =
+        CaseCreationOptions.requiresOtherInput(_selectedSpecificIssue)
+        ? _otherIssueController.text.trim()
+        : _selectedSpecificIssue ?? '';
+
+    return '${_selectedIssueType ?? ''} - $specificIssue';
+  }
 
   // 단계별 Next 버튼 활성화 조건
   bool get _canGoNext {
-    if (_currentStep == 1) {
-      return _selectedIssueType != null;
-    }
+    switch (_currentStep) {
+      case 1:
+        return _selectedIssueType != null;
 
-    if (_selectedSpecificIssue == null) {
-      return false;
-    }
+      case 2:
+        if (_selectedSpecificIssue == null) {
+          return false;
+        }
 
-    // Other는 공백을 제외한 내용이 있어야 진행 가능
-    if (CaseCreationOptions.requiresOtherInput(_selectedSpecificIssue)) {
-      return _otherIssueController.text.trim().isNotEmpty;
-    }
+        if (CaseCreationOptions.requiresOtherInput(_selectedSpecificIssue)) {
+          return _otherIssueController.text.trim().isNotEmpty;
+        }
 
-    return true;
+        return true;
+
+      case 3:
+        if (_selectedLocation == null) {
+          return false;
+        }
+
+        if (CaseCreationOptions.requiresOtherLocationInput(_selectedLocation)) {
+          return _otherLocationController.text.trim().isNotEmpty;
+        }
+
+        return true;
+
+      default:
+        return false;
+    }
+  }
+
+  // 문제 정보 변경 시 이후 위치 정보 초기화
+  void _resetLocation() {
+    _selectedLocation = null;
+    _otherLocationController.clear();
   }
 
   void _handleIssueTypeChanged(String value) {
     setState(() {
-      // 유형이 바뀌면 기존 세부 이슈 초기화
       if (_selectedIssueType != value) {
         _selectedSpecificIssue = null;
         _otherIssueController.clear();
+        _resetLocation();
       }
 
       _selectedIssueType = value;
@@ -69,6 +119,10 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
     FocusScope.of(context).unfocus();
 
     setState(() {
+      if (_selectedSpecificIssue != value) {
+        _resetLocation();
+      }
+
       _selectedSpecificIssue = value;
     });
 
@@ -78,20 +132,30 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
       await _showSafetyNotice(SafetyNoticeType.electrical);
     } else if (_selectedIssueType == 'Water & Flooding' &&
         value == 'Flooding') {
-      // 침수 선택 시 안내
       await _showSafetyNotice(SafetyNoticeType.flooding);
     }
   }
 
-  void _handleOtherChanged(String value) {
-    // 입력 내용에 따라 버튼 활성화 갱신
+  void _handleOtherIssueChanged(String value) {
+    setState(() {});
+  }
+
+  void _handleLocationChanged(String value) {
+    FocusScope.of(context).unfocus();
+
+    setState(() {
+      _selectedLocation = value;
+    });
+  }
+
+  void _handleOtherLocationChanged(String value) {
     setState(() {});
   }
 
   void _handleEdit() {
     FocusScope.of(context).unfocus();
 
-    // 선택을 유지하며 1단계로 복귀
+    // 기존 선택을 유지하며 문제 유형 수정
     setState(() {
       _currentStep = 1;
     });
@@ -112,7 +176,6 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
         context: context,
         barrierDismissible: false,
         builder: (context) {
-          // Stay / Leave 버튼으로만 모달 닫기
           return const PopScope<CaseExitResult>(
             canPop: false,
             child: CaseExitDialog(),
@@ -166,20 +229,36 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
 
     FocusScope.of(context).unfocus();
 
-    if (_currentStep == 1) {
-      setState(() {
-        _currentStep = 2;
-      });
+    switch (_currentStep) {
+      case 1:
+        setState(() {
+          _currentStep = 2;
+        });
 
-      // 가스는 2단계 진입 시 안내
-      if (_selectedIssueType == 'Gas') {
-        await _showSafetyNotice(SafetyNoticeType.gas);
-      }
+        // 가스는 2단계 진입 시 안내
+        if (_selectedIssueType == 'Gas') {
+          await _showSafetyNotice(SafetyNoticeType.gas);
+        }
 
-      return;
+        return;
+
+      case 2:
+        // 세부 문제 선택 후 위치 선택으로 이동
+        setState(() {
+          _currentStep = 3;
+        });
+
+        return;
+
+      case 3:
+        if (CaseCreationOptions.skipsAffectedArea(_selectedLocation)) {
+          // TODO: Entire Unit은 5단계 Add Evidence로 이동
+          return;
+        }
+
+        // TODO: 일반 위치는 4단계 Affected Area로 이동
+        return;
     }
-
-    // TODO: 3단계 Location 이동 연결
   }
 
   Future<void> _showSafetyNotice(SafetyNoticeType type) async {
@@ -196,7 +275,6 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
         context: context,
         barrierDismissible: false,
         builder: (context) {
-          // 바깥 클릭과 시스템 뒤로가기로 닫히지 않도록 설정
           return PopScope<SafetyNoticeResult>(
             canPop: false,
             child: SafetyNoticeDialog(type: type),
@@ -217,9 +295,44 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
     }
   }
 
+  // 현재 단계에 맞는 입력 화면
+  Widget _buildStep() {
+    switch (_currentStep) {
+      case 1:
+        return IssueTypeStep(
+          selectedIssueType: _selectedIssueType,
+          onChanged: _handleIssueTypeChanged,
+        );
+
+      case 2:
+        return SpecificIssueStep(
+          issueType: _selectedIssueType!,
+          selectedIssue: _selectedSpecificIssue,
+          onChanged: _handleSpecificIssueChanged,
+          onEdit: _handleEdit,
+          otherController: _otherIssueController,
+          onOtherChanged: _handleOtherIssueChanged,
+        );
+
+      case 3:
+        return LocationStep(
+          issueSummary: _issueSummary,
+          selectedLocation: _selectedLocation,
+          onChanged: _handleLocationChanged,
+          onEdit: _handleEdit,
+          otherController: _otherLocationController,
+          onOtherChanged: _handleOtherLocationChanged,
+        );
+
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
   @override
   void dispose() {
     _otherIssueController.dispose();
+    _otherLocationController.dispose();
     super.dispose();
   }
 
@@ -243,29 +356,15 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
               children: [
                 // 공통 헤더와 진행바
                 CaseCreationHeader(
-                  title: _currentStep == 1 ? 'Issue Type' : 'Specify Issue',
+                  title: _stepTitle,
                   currentStep: _currentStep,
                   totalSteps: 7,
                   onBack: _handleBack,
                 ),
                 const SizedBox(height: 20),
 
-                // 현재 단계에 맞는 입력 화면
-                Expanded(
-                  child: _currentStep == 1
-                      ? IssueTypeStep(
-                          selectedIssueType: _selectedIssueType,
-                          onChanged: _handleIssueTypeChanged,
-                        )
-                      : SpecificIssueStep(
-                          issueType: _selectedIssueType!,
-                          selectedIssue: _selectedSpecificIssue,
-                          onChanged: _handleSpecificIssueChanged,
-                          onEdit: _handleEdit,
-                          otherController: _otherIssueController,
-                          onOtherChanged: _handleOtherChanged,
-                        ),
-                ),
+                // 단계별 입력 화면
+                Expanded(child: _buildStep()),
                 const SizedBox(height: 16),
 
                 // 하단 Next 버튼
