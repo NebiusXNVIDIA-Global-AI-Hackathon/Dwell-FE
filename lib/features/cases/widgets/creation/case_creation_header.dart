@@ -70,6 +70,7 @@ class CaseCreationHeader extends StatelessWidget {
                 color: Color(0xFF5E5E5E),
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
+                letterSpacing: 0,
               ),
             ),
           ],
