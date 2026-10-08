@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import '../data/case_creation_options.dart';
 import '../widgets/creation/case_creation_bottom.dart';
 import '../widgets/creation/case_creation_header.dart';
+import '../widgets/creation/dialogs/case_exit_dialog.dart';
 import '../widgets/creation/dialogs/safety_notice_dialog.dart';
 import '../widgets/creation/steps/issue_type_step.dart';
 import '../widgets/creation/steps/specific_issue_step.dart';
@@ -21,8 +22,12 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
   String? _selectedIssueType;
   String? _selectedSpecificIssue;
 
-  // 안전 안내 모달 중복 표시 방지
+  // 모달 중복 표시 방지
   bool _isSafetyNoticeOpen = false;
+  bool _isExitNoticeOpen = false;
+
+  // Leave 선택 후 페이지 종료 허용
+  bool _allowLeave = false;
 
   final TextEditingController _otherIssueController = TextEditingController();
 
@@ -57,7 +62,7 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
   }
 
   Future<void> _handleSpecificIssueChanged(String value) async {
-    if (_isSafetyNoticeOpen) {
+    if (_isSafetyNoticeOpen || _isExitNoticeOpen || _allowLeave) {
       return;
     }
 
@@ -92,17 +97,58 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
     });
   }
 
-  void _handleBack() {
-    if (_currentStep > 1) {
-      _handleEdit();
+  Future<void> _handleBack() async {
+    if (_isExitNoticeOpen || _isSafetyNoticeOpen || _allowLeave) {
       return;
     }
 
-    _leaveCreation();
+    FocusScope.of(context).unfocus();
+    _isExitNoticeOpen = true;
+
+    CaseExitResult? result;
+
+    try {
+      result = await showDialog<CaseExitResult>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          // Stay / Leave 버튼으로만 모달 닫기
+          return const PopScope<CaseExitResult>(
+            canPop: false,
+            child: CaseExitDialog(),
+          );
+        },
+      );
+    } finally {
+      _isExitNoticeOpen = false;
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    // Stay는 현재 화면 유지, Leave는 등록 화면 종료
+    if (result == CaseExitResult.leave) {
+      await _leaveCreation();
+    }
   }
 
-  // 등록 화면 종료
-  void _leaveCreation() {
+  Future<void> _leaveCreation() async {
+    if (!mounted || _allowLeave) {
+      return;
+    }
+
+    setState(() {
+      _allowLeave = true;
+    });
+
+    // 종료 허용 상태가 화면에 반영된 뒤 이동
+    await WidgetsBinding.instance.endOfFrame;
+
+    if (!mounted) {
+      return;
+    }
+
     if (context.canPop()) {
       context.pop();
     } else {
@@ -111,7 +157,10 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
   }
 
   Future<void> _handleNext() async {
-    if (!_canGoNext || _isSafetyNoticeOpen) {
+    if (!_canGoNext ||
+        _isSafetyNoticeOpen ||
+        _isExitNoticeOpen ||
+        _allowLeave) {
       return;
     }
 
@@ -134,7 +183,7 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
   }
 
   Future<void> _showSafetyNotice(SafetyNoticeType type) async {
-    if (_isSafetyNoticeOpen) {
+    if (_isSafetyNoticeOpen || _isExitNoticeOpen || _allowLeave) {
       return;
     }
 
@@ -148,7 +197,10 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
         barrierDismissible: false,
         builder: (context) {
           // 바깥 클릭과 시스템 뒤로가기로 닫히지 않도록 설정
-          return PopScope(canPop: false, child: SafetyNoticeDialog(type: type));
+          return PopScope<SafetyNoticeResult>(
+            canPop: false,
+            child: SafetyNoticeDialog(type: type),
+          );
         },
       );
     } finally {
@@ -159,9 +211,9 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
       return;
     }
 
-    // Leave는 화면 종료, Continue는 현재 화면 유지
+    // 안전 안내의 Leave는 추가 확인 없이 화면 종료
     if (result == SafetyNoticeResult.leave) {
-      _leaveCreation();
+      await _leaveCreation();
     }
   }
 
@@ -173,44 +225,53 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 60, 20, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 공통 헤더와 진행바
-              CaseCreationHeader(
-                title: _currentStep == 1 ? 'Issue Type' : 'Specify Issue',
-                currentStep: _currentStep,
-                totalSteps: 7,
-                onBack: _handleBack,
-              ),
-              const SizedBox(height: 20),
+    return PopScope<Object?>(
+      canPop: _allowLeave,
+      onPopInvokedWithResult: (didPop, result) {
+        // 시스템 뒤로가기 시에도 중도 이탈 확인
+        if (!didPop) {
+          _handleBack();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF7F7F7),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 60, 20, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 공통 헤더와 진행바
+                CaseCreationHeader(
+                  title: _currentStep == 1 ? 'Issue Type' : 'Specify Issue',
+                  currentStep: _currentStep,
+                  totalSteps: 7,
+                  onBack: _handleBack,
+                ),
+                const SizedBox(height: 20),
 
-              // 현재 단계에 맞는 입력 화면
-              Expanded(
-                child: _currentStep == 1
-                    ? IssueTypeStep(
-                        selectedIssueType: _selectedIssueType,
-                        onChanged: _handleIssueTypeChanged,
-                      )
-                    : SpecificIssueStep(
-                        issueType: _selectedIssueType!,
-                        selectedIssue: _selectedSpecificIssue,
-                        onChanged: _handleSpecificIssueChanged,
-                        onEdit: _handleEdit,
-                        otherController: _otherIssueController,
-                        onOtherChanged: _handleOtherChanged,
-                      ),
-              ),
-              const SizedBox(height: 16),
+                // 현재 단계에 맞는 입력 화면
+                Expanded(
+                  child: _currentStep == 1
+                      ? IssueTypeStep(
+                          selectedIssueType: _selectedIssueType,
+                          onChanged: _handleIssueTypeChanged,
+                        )
+                      : SpecificIssueStep(
+                          issueType: _selectedIssueType!,
+                          selectedIssue: _selectedSpecificIssue,
+                          onChanged: _handleSpecificIssueChanged,
+                          onEdit: _handleEdit,
+                          otherController: _otherIssueController,
+                          onOtherChanged: _handleOtherChanged,
+                        ),
+                ),
+                const SizedBox(height: 16),
 
-              // 하단 Next 버튼
-              CaseCreationBottom(enabled: _canGoNext, onNext: _handleNext),
-            ],
+                // 하단 Next 버튼
+                CaseCreationBottom(enabled: _canGoNext, onNext: _handleNext),
+              ],
+            ),
           ),
         ),
       ),
