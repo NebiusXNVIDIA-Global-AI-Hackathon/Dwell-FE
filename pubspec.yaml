@@ -79,6 +79,7 @@ flutter:
     - assets/icons/bottom_nav/
     - assets/icons/case/
     - assets/icons/issues/
+    - assets/icons/areas/
 
   fonts:
     - family: Pretendard Variable
