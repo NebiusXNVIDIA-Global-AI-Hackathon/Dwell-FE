@@ -54,7 +54,6 @@ class CaseLocationCard extends StatelessWidget {
                   child: Text(
                     label,
                     textAlign: TextAlign.center,
-                    maxLines: 2,
                     style: TextStyle(
                       color: contentColor,
                       fontSize: 16,

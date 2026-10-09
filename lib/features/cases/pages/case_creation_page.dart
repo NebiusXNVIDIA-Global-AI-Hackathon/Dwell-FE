@@ -275,7 +275,13 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
         backgroundColor: const Color(0xFFF7F7F7),
         body: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 60, 20, 24),
+            // Leave room for scrollable inputs when the keyboard is open.
+            padding: EdgeInsets.fromLTRB(
+              20,
+              MediaQuery.viewInsetsOf(context).bottom > 0 ? 20 : 60,
+              20,
+              24,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

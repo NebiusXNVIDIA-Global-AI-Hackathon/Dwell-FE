@@ -96,7 +96,6 @@ class CaseAreaCard extends StatelessWidget {
                   child: Text(
                     label,
                     textAlign: TextAlign.center,
-                    maxLines: 3,
                     style: TextStyle(
                       color: const Color(0xFF243B53),
                       fontSize: 13,

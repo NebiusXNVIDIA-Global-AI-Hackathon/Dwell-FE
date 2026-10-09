@@ -52,8 +52,6 @@ class CaseCreationHeader extends StatelessWidget {
             Expanded(
               child: Text(
                 title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: Color(0xFF243B53),
                   fontSize: 24,

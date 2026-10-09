@@ -57,6 +57,13 @@ class _LocationStepState extends State<LocationStep> {
 
   @override
   Widget build(BuildContext context) {
+    // Preserve the 32px badge at normal scale; enlarge for accessibility.
+    final badgeSize =
+        32.0 *
+        (MediaQuery.textScalerOf(context).scale(16) / 16).clamp(
+          1.0,
+          double.infinity,
+        );
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -84,8 +91,8 @@ class _LocationStepState extends State<LocationStep> {
           Row(
             children: [
               Container(
-                width: 32,
-                height: 32,
+                width: badgeSize,
+                height: badgeSize,
                 alignment: Alignment.center,
                 decoration: const BoxDecoration(
                   color: Color(0xFF243B53),
@@ -131,25 +138,56 @@ class _LocationStepState extends State<LocationStep> {
           const SizedBox(height: 24),
 
           // 위치 카드: 3열 배치
-          GridView.count(
-            crossAxisCount: 3,
-            crossAxisSpacing: 14,
-            mainAxisSpacing: 18,
-            childAspectRatio: 1,
-            shrinkWrap: true,
-            primary: false,
-            padding: EdgeInsets.zero,
-            physics: const NeverScrollableScrollPhysics(),
-            children: [
-              for (final entry in CaseCreationOptions.locations.entries)
-                CaseLocationCard(
-                  label: entry.key,
-                  icon: entry.value,
-                  selected: selectedLocation == entry.key,
-                  hasSelection: selectedLocation != null,
-                  onTap: () => onChanged(entry.key),
-                ),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final cardWidth = (constraints.maxWidth - 14 * 2) / 3;
+              var cardHeight = cardWidth;
+              // Keep square cards when labels fit. Measure both font weights
+              // so choosing a card does not change the grid height.
+              for (final label in CaseCreationOptions.locations.keys) {
+                for (final weight in [FontWeight.w600, FontWeight.w700]) {
+                  final painter = TextPainter(
+                    text: TextSpan(
+                      text: label,
+                      style: DefaultTextStyle.of(context).style.merge(
+                        TextStyle(
+                          fontSize: 16,
+                          fontWeight: weight,
+                          height: 1.2,
+                        ),
+                      ),
+                    ),
+                    textDirection: Directionality.of(context),
+                    textScaler: MediaQuery.textScalerOf(context),
+                    locale: Localizations.maybeLocaleOf(context),
+                  )..layout(maxWidth: cardWidth - 8);
+                  // Icon (32), gap (8), and vertical padding (16).
+                  final requiredHeight = 56 + painter.height;
+                  if (requiredHeight > cardHeight) cardHeight = requiredHeight;
+                  painter.dispose();
+                }
+              }
+              return GridView.count(
+                crossAxisCount: 3,
+                crossAxisSpacing: 14,
+                mainAxisSpacing: 18,
+                mainAxisExtent: cardHeight,
+                shrinkWrap: true,
+                primary: false,
+                padding: EdgeInsets.zero,
+                physics: const NeverScrollableScrollPhysics(),
+                children: [
+                  for (final entry in CaseCreationOptions.locations.entries)
+                    CaseLocationCard(
+                      label: entry.key,
+                      icon: entry.value,
+                      selected: selectedLocation == entry.key,
+                      hasSelection: selectedLocation != null,
+                      onTap: () => onChanged(entry.key),
+                    ),
+                ],
+              );
+            },
           ),
 
           // Other 선택 시 직접 입력

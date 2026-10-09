@@ -65,6 +65,13 @@ class _AffectedAreaStepState extends State<AffectedAreaStep> {
 
   @override
   Widget build(BuildContext context) {
+    // Preserve the 32px badge at normal scale; enlarge for accessibility.
+    final badgeSize =
+        32.0 *
+        (MediaQuery.textScalerOf(context).scale(16) / 16).clamp(
+          1.0,
+          double.infinity,
+        );
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -92,8 +99,8 @@ class _AffectedAreaStepState extends State<AffectedAreaStep> {
           Row(
             children: [
               Container(
-                width: 32,
-                height: 32,
+                width: badgeSize,
+                height: badgeSize,
                 alignment: Alignment.center,
                 decoration: const BoxDecoration(
                   color: Color(0xFF243B53),
@@ -140,8 +147,8 @@ class _AffectedAreaStepState extends State<AffectedAreaStep> {
           Row(
             children: [
               Container(
-                width: 32,
-                height: 32,
+                width: badgeSize,
+                height: badgeSize,
                 alignment: Alignment.center,
                 decoration: const BoxDecoration(
                   color: Color(0xFF243B53),
