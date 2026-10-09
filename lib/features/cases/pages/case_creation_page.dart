@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../controllers/evidence_controller.dart';
 import '../services/evidence_library.dart';
 import 'evidence/evidence_camera_page.dart';
+import 'evidence/evidence_video_page.dart';
+import '../services/evidence_video_diagnostics.dart';
+import '../models/evidence_model.dart';
 
 import 'package:material_ui/material_ui.dart';
 
@@ -34,7 +37,7 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage> {
   @override
   void dispose() {
     for (final item in _evidence.items) {
-      MemoryImage(item.bytes).evict();
+      if (item.type == EvidenceType.photo) MemoryImage(item.bytes).evict();
     }
     _evidence.dispose();
     super.dispose();
@@ -51,6 +54,7 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage> {
   bool _isEvidenceGuideOpen = false;
   bool _isEvidenceSheetOpen = false;
   bool _isLibraryPickerOpen = false;
+  bool _isVideoPageOpen = false;
   bool _isSafetyNoticeOpen = false;
   bool _isExitNoticeOpen = false;
 
@@ -191,6 +195,7 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage> {
   Future<void> _showEvidenceSheet() async {
     if (_isEvidenceSheetOpen ||
         _isLibraryPickerOpen ||
+        _isVideoPageOpen ||
         _isExitNoticeOpen ||
         _allowLeave) {
       return;
@@ -224,9 +229,36 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage> {
         if (mounted && photo != null) _evidence.add(photo);
       } else if (source == EvidenceSource.library) {
         await _pickLibraryPhotos();
+      } else if (source == EvidenceSource.video) {
+        await _recordVideo();
       }
     } finally {
       if (mounted) setState(() => _isEvidenceSheetOpen = false);
+    }
+  }
+
+  Future<void> _recordVideo() async {
+    if (_isVideoPageOpen || _allowLeave) return;
+    _isVideoPageOpen = true;
+    try {
+      logRecordVideo('open recording route');
+      final video = await ref.read(evidenceVideoLauncherProvider)(context);
+      logRecordVideo('route result=${video?.id}');
+      if (video == null) return;
+      if (mounted && !_allowLeave) {
+        _evidence.add(video);
+        logRecordVideo(
+          'EvidenceController added video count=${_evidence.items.length}',
+        );
+      } else {
+        await video.dispose();
+      }
+    } catch (_) {
+      if (mounted && !_allowLeave) {
+        _showLibraryMessage('Unable to record the video. Please try again.');
+      }
+    } finally {
+      _isVideoPageOpen = false;
     }
   }
 

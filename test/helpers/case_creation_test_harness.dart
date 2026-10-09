@@ -1,3 +1,4 @@
+import 'package:dwell/features/cases/pages/evidence/evidence_video_page.dart';
 import 'package:dwell/features/cases/services/evidence_library.dart';
 import 'package:dwell/app.dart';
 import 'package:dwell/features/cases/pages/evidence/evidence_camera_page.dart';
@@ -54,6 +55,7 @@ class CreationHarness {
     bool direct = false,
     EvidenceCameraLauncher? capturePhoto,
     EvidenceLibraryPicker? pickLibrary,
+    EvidenceVideoLauncher? recordVideo,
   }) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = size;
@@ -66,6 +68,9 @@ class CreationHarness {
     // Camera integration tests supply the real page with a fake camera.
     final container = ProviderContainer(
       overrides: [
+        evidenceVideoLauncherProvider.overrideWithValue(
+          recordVideo ?? (_) async => null,
+        ),
         evidenceLibraryPickerProvider.overrideWithValue(
           pickLibrary ?? () async => const EvidenceLibraryResult([]),
         ),

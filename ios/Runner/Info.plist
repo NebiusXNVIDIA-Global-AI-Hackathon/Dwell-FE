@@ -5,7 +5,7 @@
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Select photos of the issue to add evidence to your case.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Take photos of the issue to add evidence to your case.</string>
+	<string>Take photos and videos of the issue to add evidence to your case.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Microphone access is used only when recording evidence with audio.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../models/evidence_model.dart';
@@ -24,7 +26,8 @@ class EvidenceController extends ChangeNotifier {
   void remove(String id) {
     final index = _items.indexWhere((item) => item.id == id);
     if (index < 0) return;
-    _items.removeAt(index);
+    final removed = _items.removeAt(index);
+    unawaited(removed.dispose().catchError((Object _) {}));
     if (_selectedId == id) {
       _selectedId = _items.isEmpty
           ? null
@@ -35,6 +38,9 @@ class EvidenceController extends ChangeNotifier {
 
   @override
   void dispose() {
+    for (final item in _items) {
+      unawaited(item.dispose().catchError((Object _) {}));
+    }
     _items.clear();
     _selectedId = null;
     super.dispose();

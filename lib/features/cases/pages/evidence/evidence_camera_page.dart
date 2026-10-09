@@ -7,6 +7,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../models/evidence_model.dart';
 import '../../services/evidence_camera.dart';
+import '../../widgets/creation/evidence/evidence_guide_frame.dart';
 
 typedef EvidenceCameraLauncher = Future<EvidenceModel?> Function(BuildContext);
 final evidenceCameraLauncherProvider = Provider<EvidenceCameraLauncher>(
@@ -255,7 +256,7 @@ class _EvidenceCameraPageState extends State<EvidenceCameraPage>
                                       vertical: 36,
                                     ),
                                     child: CustomPaint(
-                                      painter: _GuideFramePainter(),
+                                      painter: EvidenceGuideFramePainter(),
                                     ),
                                   ),
                                   Center(
@@ -357,36 +358,4 @@ class _EvidenceCameraPageState extends State<EvidenceCameraPage>
       ),
     ),
   );
-}
-
-class _GuideFramePainter extends CustomPainter {
-  const _GuideFramePainter();
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-    const length = 24.0;
-    for (final corner in [
-      Offset.zero,
-      Offset(size.width, 0),
-      Offset(0, size.height),
-      Offset(size.width, size.height),
-    ]) {
-      final dx = corner.dx == 0 ? length : -length;
-      final dy = corner.dy == 0 ? length : -length;
-      canvas.drawPath(
-        Path()
-          ..moveTo(corner.dx + dx, corner.dy)
-          ..lineTo(corner.dx, corner.dy)
-          ..lineTo(corner.dx, corner.dy + dy),
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(_GuideFramePainter oldDelegate) => false;
 }
