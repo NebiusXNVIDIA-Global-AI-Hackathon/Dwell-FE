@@ -2,7 +2,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../models/case_model.dart';
+import '../../models/case_model.dart';
 
 class CaseCard extends StatelessWidget {
   final CaseModel caseItem;

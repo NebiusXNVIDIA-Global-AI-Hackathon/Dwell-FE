@@ -3,9 +3,9 @@ import 'package:dwell/features/cases/models/case_filters.dart';
 import 'package:dwell/features/cases/models/case_model.dart';
 import 'package:dwell/features/cases/models/case_sort_order.dart';
 import 'package:dwell/features/cases/pages/cases_page.dart';
-import 'package:dwell/features/cases/widgets/case_card.dart';
-import 'package:dwell/features/cases/widgets/case_search_tabs.dart';
-import 'package:dwell/features/cases/widgets/case_sort_menu.dart';
+import 'package:dwell/features/cases/widgets/list/case_card.dart';
+import 'package:dwell/features/cases/widgets/list/case_search_tabs.dart';
+import 'package:dwell/features/cases/widgets/list/case_sort_menu.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 

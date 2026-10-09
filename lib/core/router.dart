@@ -8,6 +8,7 @@ import '../features/my_page/my_page.dart';
 import '../features/my_place/my_place_page.dart';
 import '../features/cases/pages/cases_page.dart';
 import '../features/splash/splash_page.dart';
+import '../features/cases/pages/case_creation_page.dart';
 import 'layouts/main_layout.dart';
 
 // 화면 추가 시 여기 GoRoute 도 추가
@@ -21,6 +22,12 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // 하단바 없이 표시할 페이지
       GoRoute(path: '/splash', builder: (context, state) => const SplashPage()),
+      // 케이스 등록 페이지
+      GoRoute(
+        path: '/cases/new',
+        name: 'case-creation',
+        builder: (context, state) => const CaseCreationPage(),
+      ),
 
       // 공통 레이아웃과 하단바를 사용하는 페이지
       StatefulShellRoute.indexedStack(
