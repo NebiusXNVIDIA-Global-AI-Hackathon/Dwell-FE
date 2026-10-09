@@ -8,12 +8,14 @@ class CaseCreationHeader extends StatelessWidget {
     required this.currentStep,
     required this.onBack,
     this.totalSteps = 7,
+    this.showStepDetails = true,
   }) : assert(totalSteps > 0),
        assert(currentStep >= 1 && currentStep <= totalSteps);
 
   final String title;
   final int currentStep;
   final int totalSteps;
+  final bool showStepDetails;
   final VoidCallback onBack;
 
   @override
@@ -58,38 +60,41 @@ class CaseCreationHeader extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                if (showStepDetails) const SizedBox(width: 8),
 
                 // 현재 단계 / 전체 단계
-                Text(
-                  'steps $currentStep of $totalSteps',
-                  style: const TextStyle(
-                    color: Color(0xFF5E5E5E),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                if (showStepDetails)
+                  Text(
+                    'steps $currentStep of $totalSteps',
+                    style: const TextStyle(
+                      color: Color(0xFF5E5E5E),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
               ],
             ),
-            const SizedBox(height: 20),
+            if (!showStepDetails) const SizedBox(height: 10),
+            if (showStepDetails) const SizedBox(height: 20),
 
             // 진행바
-            LinearProgressIndicator(
-              value: currentStep / totalSteps,
-              minHeight: 5,
-              color: const Color(0xFF243B53),
-              backgroundColor: const Color(0xFFE3E3E3),
-              borderRadius: BorderRadius.circular(100),
-              trackGap: 0,
-              stopIndicatorRadius: 0,
-            ),
+            if (showStepDetails)
+              LinearProgressIndicator(
+                value: currentStep / totalSteps,
+                minHeight: 5,
+                color: const Color(0xFF243B53),
+                backgroundColor: const Color(0xFFE3E3E3),
+                borderRadius: BorderRadius.circular(100),
+                trackGap: 0,
+                stopIndicatorRadius: 0,
+              ),
           ],
         ),
         // The entire 44px target stays inside the header's real bounds.
         Positioned(
           left: 0,
           top: 0,
-          bottom: 15,
+          bottom: showStepDetails ? 15 : 0,
           width: 44,
           child: Align(
             alignment: Alignment.centerLeft,

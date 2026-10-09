@@ -43,7 +43,7 @@ void verifyCards(WidgetTester tester) {
       i == 2 ? findsOneWidget : findsNothing,
     );
     final rect = tester.getRect(images.at(i));
-    expect(rect.width, rect.height);
+    expect(rect.size, const Size(79, 66));
     if (i == 2) expect(tester.getRect(play).center, rect.center);
   }
   expect(tester.widget<SvgPicture>(play).excludeFromSemantics, isTrue);
@@ -58,6 +58,47 @@ void verifyCards(WidgetTester tester) {
 
 void main() {
   setUpAll(loadCreationTestFonts);
+  testWidgets(
+    '393x844 guide uses the Step 4 Back geometry and reference card spacing',
+    (tester) async {
+      final h = await CreationHarness.start(tester, direct: true);
+      await h.toArea();
+      await h.choose('Ceiling');
+      final visual = find.byWidgetPredicate(
+        (w) => w is SizedBox && w.width == 33 && w.height == 33,
+      );
+      final before = tester.getRect(visual);
+      await h.next();
+      final guide = find.byType(EvidenceGuidePage);
+      expect(
+        tester.getRect(find.descendant(of: guide, matching: visual)),
+        before,
+      );
+      final images = find.descendant(of: guide, matching: find.byType(Image));
+      final cards = [
+        for (var i = 0; i < 4; i++)
+          find
+              .ancestor(of: images.at(i), matching: find.byType(Container))
+              .first,
+      ];
+      expect(tester.getRect(cards.first).top, closeTo(171, 0.01));
+      expect(tester.getSize(cards.first), const Size(353, 87));
+      for (var i = 1; i < 4; i++) {
+        expect(
+          tester.getRect(cards[i]).top - tester.getRect(cards[i - 1]).bottom,
+          closeTo(8, 0.01),
+        );
+      }
+      final button = find.descendant(
+        of: guide,
+        matching: find.byType(FilledButton),
+      );
+      expect(tester.getRect(button).left, 20);
+      expect(tester.getRect(button).bottom, 806);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   for (final size in [
     const Size(320, 568),
     const Size(375, 667),
@@ -125,7 +166,9 @@ void main() {
       await h.tap(
         find.descendant(
           of: find.byType(EvidenceGuidePage),
-          matching: find.byTooltip('Back'),
+          matching: find.byWidgetPredicate(
+            (w) => w is Semantics && w.properties.label == 'Back',
+          ),
         ),
       );
       h.expectStep(4);
