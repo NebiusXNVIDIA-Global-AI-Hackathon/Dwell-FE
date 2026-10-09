@@ -36,7 +36,7 @@ class CaseAreaCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(6),
+            padding: const EdgeInsets.all(2),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -90,14 +90,13 @@ class CaseAreaCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
 
-                // 이름이 여러 줄이어도 카드 높이를 일정하게 유지
-                SizedBox(
-                  height: 48,
+                // 이름의 실제 줄 수에 맞춰 테두리 높이 조절
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
                   child: Text(
                     label,
                     textAlign: TextAlign.center,
                     maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: const Color(0xFF243B53),
                       fontSize: 13,

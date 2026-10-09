@@ -1,7 +1,8 @@
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../data/case_creation_options.dart';
+import '../controllers/case_creation_controller.dart';
+import '../widgets/creation/steps/affected_area_step.dart';
 import '../widgets/creation/case_creation_bottom.dart';
 import '../widgets/creation/case_creation_header.dart';
 import '../widgets/creation/dialogs/case_exit_dialog.dart';
@@ -18,11 +19,13 @@ class CaseCreationPage extends StatefulWidget {
 }
 
 class _CaseCreationPageState extends State<CaseCreationPage> {
-  // 현재 단계와 선택한 정보
-  int _currentStep = 1;
-  String? _selectedIssueType;
-  String? _selectedSpecificIssue;
-  String? _selectedLocation;
+  final _controller = CaseCreationController();
+  int get _currentStep => _controller.currentStep;
+  String? get _selectedIssueType => _controller.draft.issueType;
+  String? get _selectedSpecificIssue => _controller.draft.specificIssue;
+  String? get _selectedLocation => _controller.draft.location;
+  String get _issueSummary => _controller.issueSummary;
+  bool get _canGoNext => _controller.canGoNext;
 
   // 모달 중복 표시 방지
   bool _isSafetyNoticeOpen = false;
@@ -30,11 +33,6 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
 
   // Leave 선택 후 페이지 종료 허용
   bool _allowLeave = false;
-
-  // 문제와 위치의 직접 입력을 각각 관리
-  final TextEditingController _otherIssueController = TextEditingController();
-  final TextEditingController _otherLocationController =
-      TextEditingController();
 
   // 단계별 헤더 제목
   String get _stepTitle {
@@ -45,70 +43,15 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
         return 'Specify Issue';
       case 3:
         return 'Issue Location';
+      case 4:
+        return 'Affected Area';
       default:
         return 'New Case';
     }
   }
 
-  // Other 문제는 입력한 내용을 요약에 표시
-  String get _issueSummary {
-    final specificIssue =
-        CaseCreationOptions.requiresOtherInput(_selectedSpecificIssue)
-        ? _otherIssueController.text.trim()
-        : _selectedSpecificIssue ?? '';
-
-    return '${_selectedIssueType ?? ''} - $specificIssue';
-  }
-
-  // 단계별 Next 버튼 활성화 조건
-  bool get _canGoNext {
-    switch (_currentStep) {
-      case 1:
-        return _selectedIssueType != null;
-
-      case 2:
-        if (_selectedSpecificIssue == null) {
-          return false;
-        }
-
-        if (CaseCreationOptions.requiresOtherInput(_selectedSpecificIssue)) {
-          return _otherIssueController.text.trim().isNotEmpty;
-        }
-
-        return true;
-
-      case 3:
-        if (_selectedLocation == null) {
-          return false;
-        }
-
-        if (CaseCreationOptions.requiresOtherLocationInput(_selectedLocation)) {
-          return _otherLocationController.text.trim().isNotEmpty;
-        }
-
-        return true;
-
-      default:
-        return false;
-    }
-  }
-
-  // 문제 정보 변경 시 이후 위치 정보 초기화
-  void _resetLocation() {
-    _selectedLocation = null;
-    _otherLocationController.clear();
-  }
-
   void _handleIssueTypeChanged(String value) {
-    setState(() {
-      if (_selectedIssueType != value) {
-        _selectedSpecificIssue = null;
-        _otherIssueController.clear();
-        _resetLocation();
-      }
-
-      _selectedIssueType = value;
-    });
+    setState(() => _controller.selectIssueType(value));
   }
 
   Future<void> _handleSpecificIssueChanged(String value) async {
@@ -118,13 +61,7 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
 
     FocusScope.of(context).unfocus();
 
-    setState(() {
-      if (_selectedSpecificIssue != value) {
-        _resetLocation();
-      }
-
-      _selectedSpecificIssue = value;
-    });
+    setState(() => _controller.selectSpecificIssue(value));
 
     // 위험한 전기 항목 선택 시 안내
     if (_selectedIssueType == 'Electricity' &&
@@ -137,28 +74,35 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
   }
 
   void _handleOtherIssueChanged(String value) {
-    setState(() {});
+    setState(() => _controller.setOtherIssue(value));
   }
 
   void _handleLocationChanged(String value) {
     FocusScope.of(context).unfocus();
-
-    setState(() {
-      _selectedLocation = value;
-    });
+    setState(() => _controller.selectLocation(value));
   }
 
   void _handleOtherLocationChanged(String value) {
-    setState(() {});
+    setState(() => _controller.setOtherLocation(value));
   }
 
   void _handleEdit() {
     FocusScope.of(context).unfocus();
+    setState(_controller.editIssue);
+  }
 
-    // 기존 선택을 유지하며 문제 유형 수정
-    setState(() {
-      _currentStep = 1;
-    });
+  void _handleEditLocation() {
+    FocusScope.of(context).unfocus();
+    setState(_controller.editLocation);
+  }
+
+  void _handleAreaChanged(String value) {
+    FocusScope.of(context).unfocus();
+    setState(() => _controller.selectAffectedArea(value));
+  }
+
+  void _handleOtherAreaChanged(String value) {
+    setState(() => _controller.setOtherAffectedArea(value));
   }
 
   Future<void> _handleBack() async {
@@ -229,35 +173,10 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
 
     FocusScope.of(context).unfocus();
 
-    switch (_currentStep) {
-      case 1:
-        setState(() {
-          _currentStep = 2;
-        });
-
-        // 가스는 2단계 진입 시 안내
-        if (_selectedIssueType == 'Gas') {
-          await _showSafetyNotice(SafetyNoticeType.gas);
-        }
-
-        return;
-
-      case 2:
-        // 세부 문제 선택 후 위치 선택으로 이동
-        setState(() {
-          _currentStep = 3;
-        });
-
-        return;
-
-      case 3:
-        if (CaseCreationOptions.skipsAffectedArea(_selectedLocation)) {
-          // TODO: Entire Unit은 5단계 Add Evidence로 이동
-          return;
-        }
-
-        // TODO: 일반 위치는 4단계 Affected Area로 이동
-        return;
+    final previousStep = _currentStep;
+    setState(_controller.next);
+    if (previousStep == 1 && _currentStep == 2 && _selectedIssueType == 'Gas') {
+      await _showSafetyNotice(SafetyNoticeType.gas);
     }
   }
 
@@ -310,7 +229,7 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
           selectedIssue: _selectedSpecificIssue,
           onChanged: _handleSpecificIssueChanged,
           onEdit: _handleEdit,
-          otherController: _otherIssueController,
+          otherText: _controller.draft.otherIssue,
           onOtherChanged: _handleOtherIssueChanged,
         );
 
@@ -320,20 +239,26 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
           selectedLocation: _selectedLocation,
           onChanged: _handleLocationChanged,
           onEdit: _handleEdit,
-          otherController: _otherLocationController,
+          otherText: _controller.draft.otherLocation,
           onOtherChanged: _handleOtherLocationChanged,
+        );
+
+      case 4:
+        return AffectedAreaStep(
+          issueSummary: _issueSummary,
+          location: _selectedLocation!,
+          locationSummary: _controller.locationSummary,
+          selectedArea: _controller.draft.affectedArea,
+          onChanged: _handleAreaChanged,
+          onEdit: _handleEdit,
+          onEditLocation: _handleEditLocation,
+          otherText: _controller.draft.otherAffectedArea,
+          onOtherChanged: _handleOtherAreaChanged,
         );
 
       default:
         return const SizedBox.shrink();
     }
-  }
-
-  @override
-  void dispose() {
-    _otherIssueController.dispose();
-    _otherLocationController.dispose();
-    super.dispose();
   }
 
   @override
@@ -358,7 +283,7 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
                 CaseCreationHeader(
                   title: _stepTitle,
                   currentStep: _currentStep,
-                  totalSteps: 7,
+                  totalSteps: CaseCreationController.totalSteps,
                   onBack: _handleBack,
                 ),
                 const SizedBox(height: 20),

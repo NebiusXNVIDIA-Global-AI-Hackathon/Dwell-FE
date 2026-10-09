@@ -4,14 +4,14 @@ import 'package:material_ui/material_ui.dart';
 import '../../../data/case_creation_options.dart';
 import '../other_input_field.dart';
 
-class SpecificIssueStep extends StatelessWidget {
+class SpecificIssueStep extends StatefulWidget {
   const SpecificIssueStep({
     super.key,
     required this.issueType,
     required this.selectedIssue,
     required this.onChanged,
     required this.onEdit,
-    required this.otherController,
+    required this.otherText,
     required this.onOtherChanged,
   });
 
@@ -19,8 +19,42 @@ class SpecificIssueStep extends StatelessWidget {
   final String? selectedIssue;
   final ValueChanged<String> onChanged;
   final VoidCallback onEdit;
-  final TextEditingController otherController;
+  final String otherText;
   final ValueChanged<String> onOtherChanged;
+
+  @override
+  State<SpecificIssueStep> createState() => _SpecificIssueStepState();
+}
+
+class _SpecificIssueStepState extends State<SpecificIssueStep> {
+  late final TextEditingController otherController;
+  String get issueType => widget.issueType;
+  String? get selectedIssue => widget.selectedIssue;
+  ValueChanged<String> get onChanged => widget.onChanged;
+  VoidCallback get onEdit => widget.onEdit;
+  ValueChanged<String> get onOtherChanged => widget.onOtherChanged;
+  @override
+  void initState() {
+    super.initState();
+    otherController = TextEditingController(text: widget.otherText);
+  }
+
+  @override
+  void didUpdateWidget(covariant SpecificIssueStep oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (otherController.text != widget.otherText) {
+      otherController.value = TextEditingValue(
+        text: widget.otherText,
+        selection: TextSelection.collapsed(offset: widget.otherText.length),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    otherController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

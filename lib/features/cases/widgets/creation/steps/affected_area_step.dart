@@ -1,13 +1,16 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../../data/case_creation_options.dart';
-import '../case_location_card.dart';
+import '../case_area_card.dart';
 
-class LocationStep extends StatefulWidget {
-  const LocationStep({
+class AffectedAreaStep extends StatefulWidget {
+  const AffectedAreaStep({
     super.key,
     required this.issueSummary,
-    required this.selectedLocation,
+    required this.location,
+    required this.locationSummary,
+    required this.onEditLocation,
+    required this.selectedArea,
     required this.onChanged,
     required this.onEdit,
     required this.otherText,
@@ -15,20 +18,25 @@ class LocationStep extends StatefulWidget {
   });
 
   final String issueSummary;
-  final String? selectedLocation;
+  final String location;
+  final String locationSummary;
+  final VoidCallback onEditLocation;
+  final String? selectedArea;
   final ValueChanged<String> onChanged;
   final VoidCallback onEdit;
   final String otherText;
   final ValueChanged<String> onOtherChanged;
 
   @override
-  State<LocationStep> createState() => _LocationStepState();
+  State<AffectedAreaStep> createState() => _AffectedAreaStepState();
 }
 
-class _LocationStepState extends State<LocationStep> {
+class _AffectedAreaStepState extends State<AffectedAreaStep> {
   late final TextEditingController otherController;
   String get issueSummary => widget.issueSummary;
-  String? get selectedLocation => widget.selectedLocation;
+  String get location => widget.location;
+  String get locationSummary => widget.locationSummary;
+  String? get selectedArea => widget.selectedArea;
   ValueChanged<String> get onChanged => widget.onChanged;
   VoidCallback get onEdit => widget.onEdit;
   ValueChanged<String> get onOtherChanged => widget.onOtherChanged;
@@ -39,7 +47,7 @@ class _LocationStepState extends State<LocationStep> {
   }
 
   @override
-  void didUpdateWidget(covariant LocationStep oldWidget) {
+  void didUpdateWidget(covariant AffectedAreaStep oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (otherController.text != widget.otherText) {
       otherController.value = TextEditingValue(
@@ -62,7 +70,7 @@ class _LocationStepState extends State<LocationStep> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Where is the issue?',
+            'What exactly is the issue',
             style: TextStyle(
               color: Color(0xFF243B53),
               fontSize: 20,
@@ -71,7 +79,7 @@ class _LocationStepState extends State<LocationStep> {
           ),
           const SizedBox(height: 4),
           const Text(
-            'Select the issue location',
+            'Select affected area',
             style: TextStyle(
               color: Color(0xFF627381),
               fontSize: 16,
@@ -128,42 +136,89 @@ class _LocationStepState extends State<LocationStep> {
               ),
             ],
           ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF243B53),
+                  shape: BoxShape.circle,
+                ),
+                child: const Text(
+                  '2',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  "$locationSummary - ${CaseCreationOptions.requiresOtherAffectedAreaInput(selectedArea) ? widget.otherText.trim() : selectedArea ?? ''}",
+                  style: const TextStyle(
+                    color: Color(0xFF243B53),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              TextButton(
+                onPressed: widget.onEditLocation,
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFF007AFF),
+                  minimumSize: const Size(0, 32),
+                  padding: EdgeInsets.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  textStyle: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                child: const Text('Edit'),
+              ),
+            ],
+          ),
           const SizedBox(height: 24),
 
           // 위치 카드: 3열 배치
-          GridView.count(
-            crossAxisCount: 3,
-            crossAxisSpacing: 14,
-            mainAxisSpacing: 18,
-            childAspectRatio: 1,
-            shrinkWrap: true,
-            primary: false,
-            padding: EdgeInsets.zero,
-            physics: const NeverScrollableScrollPhysics(),
-            children: [
-              for (final entry in CaseCreationOptions.locations.entries)
-                CaseLocationCard(
-                  label: entry.key,
-                  icon: entry.value,
-                  selected: selectedLocation == entry.key,
-                  hasSelection: selectedLocation != null,
-                  onTap: () => onChanged(entry.key),
-                ),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              const spacing = 8.0;
+              final cardWidth = (constraints.maxWidth - spacing * 3) / 4;
+              return Wrap(
+                spacing: spacing,
+                runSpacing: 18,
+                children: [
+                  for (final entry
+                      in (CaseCreationOptions.affectedAreas[location] ??
+                              CaseCreationOptions.affectedAreas['Other']!)
+                          .entries)
+                    SizedBox(
+                      width: cardWidth,
+                      child: CaseAreaCard(
+                        label: entry.key,
+                        iconPath: entry.value,
+                        selected: selectedArea == entry.key,
+                        onTap: () => onChanged(entry.key),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
 
           // Other 선택 시 직접 입력
-          if (CaseCreationOptions.requiresOtherLocationInput(
-            selectedLocation,
+          if (CaseCreationOptions.requiresOtherAffectedAreaInput(
+            selectedArea,
           )) ...[
             const SizedBox(height: 16),
             _buildOtherInput(),
-          ],
-
-          // Entire Unit 선택 시 단계 생략 안내
-          if (CaseCreationOptions.skipsAffectedArea(selectedLocation)) ...[
-            const SizedBox(height: 18),
-            _buildEntireUnitNotice(),
           ],
         ],
       ),
@@ -175,7 +230,7 @@ class _LocationStepState extends State<LocationStep> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Enter the issue location',
+          'Enter the affected area',
           style: TextStyle(
             color: Color(0xFF243B53),
             fontSize: 16,
@@ -197,7 +252,7 @@ class _LocationStepState extends State<LocationStep> {
                 fontWeight: FontWeight.w500,
               ),
               decoration: InputDecoration(
-                hintText: 'e.g. garage',
+                hintText: 'Describe the affected area',
                 hintStyle: const TextStyle(
                   color: Color(0xFFA6A6A6),
                   fontSize: 16,
@@ -242,53 +297,6 @@ class _LocationStepState extends State<LocationStep> {
           },
         ),
       ],
-    );
-  }
-
-  Widget _buildEntireUnitNotice() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFEEF4FD),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFC4D7F5)),
-      ),
-      child: const Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.info, size: 24, color: Color(0xFF007AFF)),
-          SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "We'll skip Step 4 · Affected Area",
-                  style: TextStyle(
-                    color: Color(0xFF243B53),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    height: 1.3,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  "Entire Unit covers the whole home, so there's "
-                  "no specific area to pick. Next, you'll go straight "
-                  'to Step 5 · Add Evidence.',
-                  style: TextStyle(
-                    color: Color(0xFF637381),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    height: 1.3,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
