@@ -182,7 +182,6 @@ class _CasesPageState extends State<CasesPage> {
                       color: textColor,
                       fontSize: 40,
                       fontWeight: FontWeight.w800,
-                      letterSpacing: -1.2,
                     ),
                   ),
                   const ProfileAvatar(nickname: 'SJ'),
