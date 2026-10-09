@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../controllers/case_creation_controller.dart';
+import 'evidence_guide_page.dart';
 import '../widgets/creation/steps/affected_area_step.dart';
 import '../widgets/creation/case_creation_bottom.dart';
 import '../widgets/creation/case_creation_header.dart';
@@ -28,6 +29,7 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
   bool get _canGoNext => _controller.canGoNext;
 
   // 모달 중복 표시 방지
+  bool _isEvidenceGuideOpen = false;
   bool _isSafetyNoticeOpen = false;
   bool _isExitNoticeOpen = false;
 
@@ -45,6 +47,8 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
         return 'Issue Location';
       case 4:
         return 'Affected Area';
+      case 5:
+        return 'Add Evidence';
       default:
         return 'New Case';
     }
@@ -165,6 +169,7 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
 
   Future<void> _handleNext() async {
     if (!_canGoNext ||
+        _isEvidenceGuideOpen ||
         _isSafetyNoticeOpen ||
         _isExitNoticeOpen ||
         _allowLeave) {
@@ -172,6 +177,21 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
     }
 
     FocusScope.of(context).unfocus();
+
+    if (_controller.canOpenEvidenceGuide) {
+      _isEvidenceGuideOpen = true;
+      try {
+        final start = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => const EvidenceGuidePage(),
+        );
+        if (mounted && start == true) setState(_controller.beginEvidence);
+      } finally {
+        _isEvidenceGuideOpen = false;
+      }
+      return;
+    }
 
     final previousStep = _currentStep;
     setState(_controller.next);
@@ -256,6 +276,18 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
           onOtherChanged: _handleOtherAreaChanged,
         );
 
+      case 5:
+        // TODO: Implement evidence capture/upload in the next task.
+        return const Center(
+          child: Text(
+            'Add Evidence',
+            style: TextStyle(
+              color: Color(0xFF243B53),
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        );
       default:
         return const SizedBox.shrink();
     }

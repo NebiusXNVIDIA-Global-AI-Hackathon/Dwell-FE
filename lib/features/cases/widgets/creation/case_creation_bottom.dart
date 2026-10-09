@@ -6,17 +6,19 @@ class CaseCreationBottom extends StatelessWidget {
     required this.enabled,
     required this.onNext,
     this.label = 'Next',
+    this.height = 56,
   });
 
   final bool enabled;
   final VoidCallback? onNext;
   final String label;
+  final double height;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 56,
+      height: height,
       child: FilledButton(
         onPressed: enabled ? onNext : null,
         style: ButtonStyle(
@@ -47,7 +49,10 @@ class CaseCreationBottom extends StatelessWidget {
             TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
         ),
-        child: Text(label),
+        child: SizedBox(
+          width: double.infinity,
+          child: Text(label, textAlign: TextAlign.center),
+        ),
       ),
     );
   }

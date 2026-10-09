@@ -146,6 +146,16 @@ class CaseCreationController {
     _draft.otherAffectedArea = value;
   }
 
+  bool get canOpenEvidenceGuide =>
+      canGoNext &&
+      (_currentStep == 4 ||
+          (_currentStep == 3 &&
+              CaseCreationOptions.skipsAffectedArea(_draft.location)));
+
+  void beginEvidence() {
+    if (canOpenEvidenceGuide) _currentStep = 5;
+  }
+
   void editIssue() => _currentStep = 1;
   void editLocation() => _currentStep = 3;
   void next() {
