@@ -1,4 +1,9 @@
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../controllers/evidence_controller.dart';
+import 'evidence/evidence_camera_page.dart';
+
 import 'package:material_ui/material_ui.dart';
 
 import '../controllers/case_creation_controller.dart';
@@ -14,15 +19,26 @@ import '../widgets/creation/steps/issue_type_step.dart';
 import '../widgets/creation/steps/location_step.dart';
 import '../widgets/creation/steps/specific_issue_step.dart';
 
-class CaseCreationPage extends StatefulWidget {
+class CaseCreationPage extends ConsumerStatefulWidget {
   const CaseCreationPage({super.key});
 
   @override
-  State<CaseCreationPage> createState() => _CaseCreationPageState();
+  ConsumerState<CaseCreationPage> createState() => _CaseCreationPageState();
 }
 
-class _CaseCreationPageState extends State<CaseCreationPage> {
+class _CaseCreationPageState extends ConsumerState<CaseCreationPage> {
   final _controller = CaseCreationController();
+  final _evidence = EvidenceController();
+
+  @override
+  void dispose() {
+    for (final item in _evidence.items) {
+      MemoryImage(item.bytes).evict();
+    }
+    _evidence.dispose();
+    super.dispose();
+  }
+
   int get _currentStep => _controller.currentStep;
   String? get _selectedIssueType => _controller.draft.issueType;
   String? get _selectedSpecificIssue => _controller.draft.specificIssue;
@@ -174,7 +190,7 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
     if (_isEvidenceSheetOpen || _isExitNoticeOpen || _allowLeave) return;
     setState(() => _isEvidenceSheetOpen = true);
     try {
-      await showModalBottomSheet<EvidenceSource>(
+      final source = await showModalBottomSheet<EvidenceSource>(
         context: context,
         isScrollControlled: true,
         useSafeArea: true,
@@ -189,12 +205,17 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
         ),
         builder: (context) => EvidenceAddSheet(
           onSelected: (source) {
-            // TODO: Connect capture, recording or picking for this source.
-            // No evidence is created and Check remains disabled.
+            // Other capture/picking sources remain TODO.
             Navigator.of(context).pop(source);
           },
         ),
       );
+      if (!mounted) return;
+      setState(() => _isEvidenceSheetOpen = false);
+      if (source == EvidenceSource.photo) {
+        final photo = await ref.read(evidenceCameraLauncherProvider)(context);
+        if (mounted && photo != null) _evidence.add(photo);
+      }
     } finally {
       if (mounted) setState(() => _isEvidenceSheetOpen = false);
     }
@@ -313,6 +334,7 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
         return EvidenceStep(
           onAdd: _showEvidenceSheet,
           isSheetOpen: _isEvidenceSheetOpen,
+          evidence: _evidence,
         );
       default:
         return const SizedBox.shrink();

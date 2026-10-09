@@ -1,4 +1,5 @@
 import 'package:dwell/app.dart';
+import 'package:dwell/features/cases/pages/evidence/evidence_camera_page.dart';
 import 'package:dwell/core/router.dart';
 import 'package:dwell/features/cases/pages/case_creation_page.dart';
 import 'package:dwell/features/cases/widgets/creation/case_creation_bottom.dart';
@@ -50,6 +51,7 @@ class CreationHarness {
     Size size = const Size(393, 844),
     double textScale = 1,
     bool direct = false,
+    EvidenceCameraLauncher? capturePhoto,
   }) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = size;
@@ -58,7 +60,15 @@ class CreationHarness {
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetViewInsets);
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-    final container = ProviderContainer();
+    // The hardware boundary is mocked: existing flow tests cancel capture.
+    // Camera integration tests supply the real page with a fake camera.
+    final container = ProviderContainer(
+      overrides: [
+        evidenceCameraLauncherProvider.overrideWithValue(
+          capturePhoto ?? (_) async => null,
+        ),
+      ],
+    );
     final router = container.read(routerProvider);
     router.go(direct ? '/cases/new' : '/cases');
     addTearDown(() async {

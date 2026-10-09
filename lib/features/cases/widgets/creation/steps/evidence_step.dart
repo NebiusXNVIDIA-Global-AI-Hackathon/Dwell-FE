@@ -1,17 +1,28 @@
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../controllers/evidence_controller.dart';
+
 class EvidenceStep extends StatelessWidget {
   const EvidenceStep({
     super.key,
     required this.onAdd,
     this.isSheetOpen = false,
+    this.evidence,
   });
   final VoidCallback onAdd;
   final bool isSheetOpen;
+  final EvidenceController? evidence;
 
   @override
-  Widget build(BuildContext context) => SingleChildScrollView(
+  Widget build(BuildContext context) => evidence == null
+      ? _content(context)
+      : AnimatedBuilder(
+          animation: evidence!,
+          builder: (context, _) => _content(context),
+        );
+
+  Widget _content(BuildContext context) => SingleChildScrollView(
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -25,6 +36,88 @@ class EvidenceStep extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
+        if (evidence?.selected case final photo?) ...[
+          AspectRatio(
+            aspectRatio: 4 / 3,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.memory(
+                photo.bytes,
+                fit: BoxFit.contain,
+                semanticLabel: 'Selected photo',
+                errorBuilder: (_, _, _) =>
+                    const Center(child: Text('Unable to preview this photo')),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 112,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: evidence!.items.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final item = evidence!.items[index];
+                return SizedBox(
+                  width: 96,
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: Semantics(
+                          button: true,
+                          selected: item.id == photo.id,
+                          label: 'Photo ${index + 1}',
+                          child: Material(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              side: BorderSide(
+                                color: item.id == photo.id
+                                    ? const Color(0xFF007AFF)
+                                    : const Color(0xFFE3E3E3),
+                                width: 2,
+                              ),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: InkWell(
+                              key: ValueKey(item.id),
+                              onTap: () => evidence!.select(item.id),
+                              child: SizedBox.expand(
+                                child: Image.memory(
+                                  item.bytes,
+                                  fit: BoxFit.cover,
+                                  excludeFromSemantics: true,
+                                  errorBuilder: (_, _, _) =>
+                                      const Icon(LucideIcons.imageOff),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        height: 44,
+                        child: IconButton(
+                          tooltip: 'Delete photo ${index + 1}',
+                          onPressed: () {
+                            MemoryImage(item.bytes).evict();
+                            evidence!.remove(item.id);
+                          },
+                          icon: const Icon(
+                            LucideIcons.trash2,
+                            size: 20,
+                            color: Color(0xFF243B53),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
         Semantics(
           label: 'Add evidence',
           button: true,
