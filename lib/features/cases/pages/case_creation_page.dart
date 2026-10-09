@@ -3,6 +3,8 @@ import 'package:material_ui/material_ui.dart';
 
 import '../controllers/case_creation_controller.dart';
 import 'evidence_guide_page.dart';
+import '../widgets/creation/steps/evidence_step.dart';
+import '../widgets/creation/evidence/evidence_add_sheet.dart';
 import '../widgets/creation/steps/affected_area_step.dart';
 import '../widgets/creation/case_creation_bottom.dart';
 import '../widgets/creation/case_creation_header.dart';
@@ -30,6 +32,7 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
 
   // 모달 중복 표시 방지
   bool _isEvidenceGuideOpen = false;
+  bool _isEvidenceSheetOpen = false;
   bool _isSafetyNoticeOpen = false;
   bool _isExitNoticeOpen = false;
 
@@ -167,6 +170,36 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
     }
   }
 
+  Future<void> _showEvidenceSheet() async {
+    if (_isEvidenceSheetOpen || _isExitNoticeOpen || _allowLeave) return;
+    setState(() => _isEvidenceSheetOpen = true);
+    try {
+      await showModalBottomSheet<EvidenceSource>(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        backgroundColor: Colors.white,
+        barrierColor: Colors.black.withValues(alpha: 0.2),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+        ),
+        builder: (context) => EvidenceAddSheet(
+          onSelected: (source) {
+            // TODO: Connect capture, recording or picking for this source.
+            // No evidence is created and Check remains disabled.
+            Navigator.of(context).pop(source);
+          },
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isEvidenceSheetOpen = false);
+    }
+  }
+
   Future<void> _handleNext() async {
     if (!_canGoNext ||
         _isEvidenceGuideOpen ||
@@ -277,16 +310,9 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
         );
 
       case 5:
-        // TODO: Implement evidence capture/upload in the next task.
-        return const Center(
-          child: Text(
-            'Add Evidence',
-            style: TextStyle(
-              color: Color(0xFF243B53),
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+        return EvidenceStep(
+          onAdd: _showEvidenceSheet,
+          isSheetOpen: _isEvidenceSheetOpen,
         );
       default:
         return const SizedBox.shrink();
@@ -331,7 +357,11 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
                 const SizedBox(height: 16),
 
                 // 하단 Next 버튼
-                CaseCreationBottom(enabled: _canGoNext, onNext: _handleNext),
+                CaseCreationBottom(
+                  enabled: _canGoNext,
+                  onNext: _handleNext,
+                  label: _currentStep == 5 ? 'Check' : 'Next',
+                ),
               ],
             ),
           ),
