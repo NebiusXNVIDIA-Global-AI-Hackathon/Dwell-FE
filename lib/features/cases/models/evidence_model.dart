@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:camera/camera.dart';
+import 'package:flutter/painting.dart';
 import 'package:path_provider/path_provider.dart';
 
 enum EvidenceType { photo, video }
@@ -31,6 +32,9 @@ class EvidenceModel {
   final Duration? duration;
   final Directory? _videoDirectory;
   Future<void>? _disposing;
+  Future<Uint8List?>? _thumbnail;
+  Uint8List? _thumbnailBytes;
+  Future<void> Function()? _clearNativeThumbnailCache;
   int _videoReaders = 0;
   Completer<void>? _readersReleased;
 
@@ -45,6 +49,50 @@ class EvidenceModel {
       _readersReleased = null;
     }
   }
+
+  /// Cache successes and failures across widget rebuilds and scrolling.
+  Future<Uint8List?> videoThumbnail(
+    Future<Uint8List?> Function() extract, {
+    Future<void> Function()? clearNativeCache,
+  }) {
+    if (type != EvidenceType.video || _disposing != null) return Future.value();
+    _clearNativeThumbnailCache ??= clearNativeCache;
+    return _thumbnail ??= _extractThumbnail(extract);
+  }
+
+  Future<Uint8List?> _extractThumbnail(Future<Uint8List?> Function() extract) {
+    retainVideo();
+    var expired = false;
+    final clearNativeCache = _clearNativeThumbnailCache;
+    final work = () async {
+      try {
+        final bytes = await extract();
+        if (_disposing != null || expired || bytes == null || bytes.isEmpty) {
+          return null;
+        }
+        _thumbnailBytes = bytes;
+        return bytes;
+      } catch (_) {
+        return null;
+      } finally {
+        // A timeout cannot cancel a native decoder. Keep its source file alive
+        // until native work actually finishes, then let normal deletion proceed.
+        if ((_disposing != null || expired) && clearNativeCache != null) {
+          unawaited(clearNativeCache().catchError((Object _) {}));
+        }
+        releaseVideo();
+      }
+    }();
+    return work.timeout(
+      const Duration(seconds: 10),
+      onTimeout: () {
+        expired = true;
+        return null;
+      },
+    );
+  }
+
+  bool get isDisposed => _disposing != null;
 
   String get fileName => file.name;
 
@@ -95,7 +143,18 @@ class EvidenceModel {
   }
 
   /// Only this model's private, app-created recording directory is removed.
-  Future<void> dispose() => _disposing ??= _deleteVideo();
+  Future<void> dispose() {
+    if (_disposing != null) return _disposing!;
+    final bytes = _thumbnailBytes;
+    _thumbnailBytes = null;
+    _thumbnail = null;
+    final clear = _clearNativeThumbnailCache;
+    _clearNativeThumbnailCache = null;
+    if (clear != null) unawaited(clear().catchError((Object _) {}));
+    if (bytes != null) unawaited(MemoryImage(bytes).evict());
+    return _disposing = _deleteVideo();
+  }
+
   Future<void> _deleteVideo() async {
     if (_videoReaders > 0) {
       _readersReleased = Completer<void>();

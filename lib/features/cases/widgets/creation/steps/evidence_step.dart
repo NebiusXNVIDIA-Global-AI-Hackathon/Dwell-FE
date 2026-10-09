@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../../controllers/evidence_controller.dart';
 import '../../../models/evidence_model.dart';
 import '../evidence/evidence_video_preview.dart';
+import '../evidence/evidence_video_thumbnail.dart';
 
 class EvidenceStep extends StatelessWidget {
   const EvidenceStep({
@@ -117,15 +118,9 @@ class EvidenceStep extends StatelessWidget {
               key: ValueKey(item.id),
               onTap: () => evidence!.select(item.id),
               child: item.type == EvidenceType.video
-                  ? const ColoredBox(
-                      color: Color(0xFF243B53),
-                      child: Center(
-                        child: Icon(
-                          Icons.play_circle_outline,
-                          color: Colors.white,
-                          semanticLabel: 'Video',
-                        ),
-                      ),
+                  ? EvidenceVideoThumbnail(
+                      key: ValueKey('thumbnail-${item.id}'),
+                      evidence: item,
                     )
                   : Image.memory(
                       item.bytes,
