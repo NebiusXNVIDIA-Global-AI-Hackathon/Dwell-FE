@@ -1,6 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../../data/case_creation_options.dart';
+import '../case_creation_summary_row.dart';
+import '../case_creation_text_input.dart';
 import '../case_area_card.dart';
 
 class AffectedAreaStep extends StatefulWidget {
@@ -65,13 +67,6 @@ class _AffectedAreaStepState extends State<AffectedAreaStep> {
 
   @override
   Widget build(BuildContext context) {
-    // Preserve the 32px badge at normal scale; enlarge for accessibility.
-    final badgeSize =
-        32.0 *
-        (MediaQuery.textScalerOf(context).scale(16) / 16).clamp(
-          1.0,
-          double.infinity,
-        );
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -96,100 +91,17 @@ class _AffectedAreaStepState extends State<AffectedAreaStep> {
           const SizedBox(height: 16),
 
           // 선택한 문제 정보
-          Row(
-            children: [
-              Container(
-                width: badgeSize,
-                height: badgeSize,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF243B53),
-                  shape: BoxShape.circle,
-                ),
-                child: const Text(
-                  '1',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  issueSummary,
-                  style: const TextStyle(
-                    color: Color(0xFF243B53),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              TextButton(
-                onPressed: onEdit,
-                style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF007AFF),
-                  minimumSize: const Size(0, 32),
-                  padding: EdgeInsets.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  textStyle: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                child: const Text('Edit'),
-              ),
-            ],
+          CaseCreationSummaryRow(
+            stepNumber: 1,
+            value: issueSummary,
+            onEdit: onEdit,
           ),
           const SizedBox(height: 10),
-          Row(
-            children: [
-              Container(
-                width: badgeSize,
-                height: badgeSize,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF243B53),
-                  shape: BoxShape.circle,
-                ),
-                child: const Text(
-                  '2',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  "$locationSummary - ${CaseCreationOptions.requiresOtherAffectedAreaInput(selectedArea) ? widget.otherText.trim() : selectedArea ?? ''}",
-                  style: const TextStyle(
-                    color: Color(0xFF243B53),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              TextButton(
-                onPressed: widget.onEditLocation,
-                style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF007AFF),
-                  minimumSize: const Size(0, 32),
-                  padding: EdgeInsets.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  textStyle: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                child: const Text('Edit'),
-              ),
-            ],
+          CaseCreationSummaryRow(
+            stepNumber: 2,
+            value:
+                "$locationSummary - ${CaseCreationOptions.requiresOtherAffectedAreaInput(selectedArea) ? widget.otherText.trim() : selectedArea ?? ''}",
+            onEdit: widget.onEditLocation,
           ),
           const SizedBox(height: 24),
 
@@ -225,85 +137,15 @@ class _AffectedAreaStepState extends State<AffectedAreaStep> {
             selectedArea,
           )) ...[
             const SizedBox(height: 16),
-            _buildOtherInput(),
+            CaseCreationTextInput(
+              label: 'Enter the affected area',
+              controller: otherController,
+              onChanged: onOtherChanged,
+              hintText: 'Describe the affected area',
+            ),
           ],
         ],
       ),
-    );
-  }
-
-  Widget _buildOtherInput() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Enter the affected area',
-          style: TextStyle(
-            color: Color(0xFF243B53),
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 10),
-        ValueListenableBuilder<TextEditingValue>(
-          valueListenable: otherController,
-          builder: (context, value, child) {
-            return TextField(
-              controller: otherController,
-              onChanged: onOtherChanged,
-              maxLength: 50,
-              maxLines: 1,
-              style: const TextStyle(
-                color: Colors.black,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-              decoration: InputDecoration(
-                hintText: 'Describe the affected area',
-                hintStyle: const TextStyle(
-                  color: Color(0xFFA6A6A6),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400,
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 12,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFFA6A6A6)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(
-                    color: Color(0xFF007AFF),
-                    width: 1.5,
-                  ),
-                ),
-                counterStyle: const TextStyle(
-                  color: Color(0xFFA6A6A6),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400,
-                ),
-                suffixIcon: value.text.isEmpty
-                    ? null
-                    : IconButton(
-                        tooltip: 'Clear',
-                        onPressed: () {
-                          otherController.clear();
-                          onOtherChanged('');
-                        },
-                        icon: const Icon(
-                          Icons.cancel,
-                          size: 20,
-                          color: Color(0xFFA6A6A6),
-                        ),
-                      ),
-              ),
-            );
-          },
-        ),
-      ],
     );
   }
 }
