@@ -5,7 +5,7 @@ import 'package:camera/camera.dart';
 
 enum EvidenceType { photo }
 
-/// Session-only capture: one original byte buffer shared by all previews.
+/// Session-only photo: one original byte buffer shared by all previews.
 class EvidenceModel {
   EvidenceModel._({
     required this.id,
@@ -23,7 +23,9 @@ class EvidenceModel {
   EvidenceType get type => EvidenceType.photo;
   String get fileName => file.name;
 
-  static Future<EvidenceModel> fromCapture(XFile file) async {
+  static Future<EvidenceModel> fromCapture(XFile file) => fromFile(file);
+
+  static Future<EvidenceModel> fromFile(XFile file) async {
     final bytes = await file.readAsBytes();
     final String mime;
     if (bytes.length >= 3 &&
@@ -46,9 +48,7 @@ class EvidenceModel {
         String.fromCharCodes(bytes.sublist(8, 12)) == 'WEBP') {
       mime = 'image/webp';
     } else {
-      throw const FormatException(
-        'The captured file is not a supported photo.',
-      );
+      throw const FormatException('The file is not a supported photo.');
     }
     // Reject corrupt captures without transforming or re-encoding the original.
     final codec = await ui.instantiateImageCodec(bytes);

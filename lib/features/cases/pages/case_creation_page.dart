@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../controllers/evidence_controller.dart';
+import '../services/evidence_library.dart';
 import 'evidence/evidence_camera_page.dart';
 
 import 'package:material_ui/material_ui.dart';
@@ -49,6 +50,7 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage> {
   // 안내 페이지 및 모달 중복 표시 방지
   bool _isEvidenceGuideOpen = false;
   bool _isEvidenceSheetOpen = false;
+  bool _isLibraryPickerOpen = false;
   bool _isSafetyNoticeOpen = false;
   bool _isExitNoticeOpen = false;
 
@@ -187,7 +189,12 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage> {
   }
 
   Future<void> _showEvidenceSheet() async {
-    if (_isEvidenceSheetOpen || _isExitNoticeOpen || _allowLeave) return;
+    if (_isEvidenceSheetOpen ||
+        _isLibraryPickerOpen ||
+        _isExitNoticeOpen ||
+        _allowLeave) {
+      return;
+    }
     setState(() => _isEvidenceSheetOpen = true);
     try {
       final source = await showModalBottomSheet<EvidenceSource>(
@@ -205,7 +212,7 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage> {
         ),
         builder: (context) => EvidenceAddSheet(
           onSelected: (source) {
-            // Other capture/picking sources remain TODO.
+            if (ModalRoute.of(context)?.isCurrent != true) return;
             Navigator.of(context).pop(source);
           },
         ),
@@ -215,10 +222,40 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage> {
       if (source == EvidenceSource.photo) {
         final photo = await ref.read(evidenceCameraLauncherProvider)(context);
         if (mounted && photo != null) _evidence.add(photo);
+      } else if (source == EvidenceSource.library) {
+        await _pickLibraryPhotos();
       }
     } finally {
       if (mounted) setState(() => _isEvidenceSheetOpen = false);
     }
+  }
+
+  Future<void> _pickLibraryPhotos() async {
+    if (_isLibraryPickerOpen || _allowLeave) return;
+    _isLibraryPickerOpen = true;
+    try {
+      final result = await ref.read(evidenceLibraryPickerProvider)();
+      if (!mounted || _allowLeave) return;
+      for (final photo in result.photos) {
+        _evidence.add(photo);
+      }
+      if (result.failedCount > 0) {
+        _showLibraryMessage(
+          'Some photos could not be added. Choose readable JPEG, PNG or WebP photos.',
+        );
+      }
+    } catch (error) {
+      if (mounted && !_allowLeave) {
+        _showLibraryMessage(evidenceLibraryErrorMessage(error));
+      }
+    } finally {
+      _isLibraryPickerOpen = false;
+    }
+  }
+
+  void _showLibraryMessage(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _handleNext() async {
