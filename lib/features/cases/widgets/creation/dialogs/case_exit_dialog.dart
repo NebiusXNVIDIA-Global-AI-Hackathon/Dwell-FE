@@ -56,9 +56,9 @@ class CaseExitDialog extends StatelessWidget {
             child: ColoredBox(color: Color(0xFFE3E3E3)),
           ),
 
-          // 버튼 영역: 좌우 같은 너비, 높이 30
+          // 버튼 영역: 좌우 같은 너비, 터치 높이 44
           SizedBox(
-            height: 30,
+            height: 44,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
