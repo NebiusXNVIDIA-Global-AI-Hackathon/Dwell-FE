@@ -59,6 +59,104 @@ void verifyCards(WidgetTester tester) {
 void main() {
   setUpAll(loadCreationTestFonts);
   testWidgets(
+    'guide uses a full-screen page and repeated open/close preserves Step 4',
+    (tester) async {
+      final h = await CreationHarness.start(tester, direct: true);
+      tester.view.padding = const FakeViewPadding(top: 48, bottom: 24);
+      tester.view.viewPadding = const FakeViewPadding(top: 48, bottom: 24);
+      addTearDown(tester.view.resetPadding);
+      addTearDown(tester.view.resetViewPadding);
+      await tester.pump();
+      await h.toArea();
+      await h.choose('Other');
+      await h.enter('corner');
+
+      for (var attempt = 0; attempt < 3; attempt++) {
+        final next = tester.widget<FilledButton>(h.nextButton).onPressed!;
+        next();
+        next();
+        await tester.pumpAndSettle();
+        final guide = find.byType(EvidenceGuidePage);
+        expect(guide, findsOneWidget);
+        final route = ModalRoute.of(tester.element(guide));
+        expect(route, isA<MaterialPageRoute<bool>>());
+        expect(route!.isCurrent, isTrue);
+        expect(route.opaque, isTrue);
+        expect(
+          find.byWidgetPredicate(
+            (w) => w is ModalBarrier && (w.color?.a ?? 0) > 0,
+          ),
+          findsNothing,
+        );
+        final scaffold = find.descendant(
+          of: guide,
+          matching: find.byType(Scaffold),
+        );
+        expect(tester.getRect(scaffold), const Rect.fromLTWH(0, 0, 393, 844));
+        expect(
+          tester.widget<Scaffold>(scaffold).backgroundColor,
+          const Color(0xFFF7F7F7),
+        );
+        final header = find.descendant(
+          of: guide,
+          matching: find.byType(CaseCreationHeader),
+        );
+        expect(tester.getRect(header).top, 48 + 20);
+        final start = find.descendant(
+          of: guide,
+          matching: find.byType(FilledButton),
+        );
+        expect(tester.getRect(start).bottom, 844 - 24 - 38);
+
+        if (attempt == 1) {
+          await tester.binding.handlePopRoute();
+        } else {
+          final back = tester.widget<CaseCreationHeader>(header).onBack;
+          back();
+          back();
+        }
+        await tester.pumpAndSettle();
+        expect(guide, findsNothing);
+        h.expectStep(4);
+        expect(h.input, 'corner');
+        final area = tester.widget<AffectedAreaStep>(h.step);
+        expect(area.selectedArea, 'Other');
+        expect(area.issueSummary, 'Plumbing - Sink Issue');
+        expect(area.locationSummary, 'Kitchen');
+        h.expectNext(true);
+        expect(
+          find.byWidgetPredicate(
+            (w) => w is ModalBarrier && (w.color?.a ?? 0) > 0,
+          ),
+          findsNothing,
+        );
+      }
+
+      await h.next();
+      final start = tester
+          .widget<FilledButton>(
+            find.descendant(
+              of: find.byType(EvidenceGuidePage),
+              matching: find.byType(FilledButton),
+            ),
+          )
+          .onPressed!;
+      start();
+      start();
+      await tester.pumpAndSettle();
+      expect(find.byType(EvidenceGuidePage), findsNothing);
+      h.expectStep(5);
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is ModalBarrier && (w.color?.a ?? 0) > 0,
+        ),
+        findsNothing,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     '393x844 guide uses the Step 4 Back geometry and reference card spacing',
     (tester) async {
       final h = await CreationHarness.start(tester, direct: true);

@@ -46,7 +46,7 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage> {
   String get _issueSummary => _controller.issueSummary;
   bool get _canGoNext => _controller.canGoNext;
 
-  // 모달 중복 표시 방지
+  // 안내 페이지 및 모달 중복 표시 방지
   bool _isEvidenceGuideOpen = false;
   bool _isEvidenceSheetOpen = false;
   bool _isSafetyNoticeOpen = false;
@@ -235,12 +235,12 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage> {
     if (_controller.canOpenEvidenceGuide) {
       _isEvidenceGuideOpen = true;
       try {
-        final start = await showDialog<bool>(
-          context: context,
-          barrierDismissible: false,
+        final route = MaterialPageRoute<bool>(
           builder: (_) => const EvidenceGuidePage(),
         );
+        final start = await Navigator.of(context).push<bool>(route);
         if (mounted && start == true) setState(_controller.beginEvidence);
+        await route.completed;
       } finally {
         _isEvidenceGuideOpen = false;
       }

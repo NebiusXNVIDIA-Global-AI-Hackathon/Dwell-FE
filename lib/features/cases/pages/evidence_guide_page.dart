@@ -6,6 +6,11 @@ import '../widgets/creation/case_creation_header.dart';
 
 class EvidenceGuidePage extends StatelessWidget {
   const EvidenceGuidePage({super.key});
+  void _close(BuildContext context, bool start) {
+    if (ModalRoute.of(context)?.isCurrent != true) return;
+    Navigator.of(context).pop(start);
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFF7F7F7),
@@ -21,7 +26,7 @@ class EvidenceGuidePage extends StatelessWidget {
                 title: 'Before You Go',
                 currentStep: 5,
                 showStepDetails: false,
-                onBack: () => Navigator.of(context).pop(false),
+                onBack: () => _close(context, false),
               ),
             ),
             const SizedBox(height: 28),
@@ -100,7 +105,7 @@ class EvidenceGuidePage extends StatelessWidget {
                     enabled: true,
                     height: height,
                     label: 'Start Adding Evidence',
-                    onNext: () => Navigator.of(context).pop(true),
+                    onNext: () => _close(context, true),
                   );
                 },
               ),
