@@ -81,7 +81,7 @@ void main() {
               .ancestor(of: images.at(i), matching: find.byType(Container))
               .first,
       ];
-      expect(tester.getRect(cards.first).top, closeTo(171, 0.01));
+      expect(tester.getRect(cards.first).top, closeTo(131, 0.01));
       expect(tester.getSize(cards.first), const Size(353, 87));
       for (var i = 1; i < 4; i++) {
         expect(

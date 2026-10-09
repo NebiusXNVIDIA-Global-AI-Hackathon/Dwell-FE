@@ -91,6 +91,70 @@ void expectFourColumns(
 
 void main() {
   setUpAll(loadCreationTestFonts);
+  for (final topInset in [0.0, 24.0, 48.0]) {
+    testWidgets(
+      'Steps 1–5 keep one system inset and a 20px header gap at $topInset',
+      (tester) async {
+        final h = await CreationHarness.start(tester, direct: true);
+        tester.view.padding = FakeViewPadding(top: topInset, bottom: 24);
+        tester.view.viewPadding = FakeViewPadding(top: topInset, bottom: 24);
+        addTearDown(tester.view.resetPadding);
+        addTearDown(tester.view.resetViewPadding);
+        await tester.pump();
+
+        Future<void> expectHeader(int step) async {
+          h.expectStep(step);
+          final header = find.descendant(
+            of: h.page,
+            matching: find.byType(CaseCreationHeader),
+          );
+          expect(tester.getTopLeft(header), Offset(20, topInset + 20));
+          expect(tester.getSize(header).height, closeTo(59, 0.01));
+          final progress = find.descendant(
+            of: header,
+            matching: find.byType(LinearProgressIndicator),
+          );
+          expect(
+            tester.getTopLeft(progress).dy - tester.getTopLeft(header).dy,
+            closeTo(54, 0.01),
+          );
+          expect(tester.getSize(progress).height, 5);
+          final footer = tester.getRect(h.nextButton);
+          expect(footer.bottom, closeTo(844 - 24 - 24, 0.01));
+
+          tester.view.viewInsets = const FakeViewPadding(bottom: 280);
+          tester.view.padding = FakeViewPadding(top: topInset);
+          await tester.pump();
+          expect(tester.getTopLeft(header).dy, topInset + 20);
+          expect(
+            tester.getRect(h.nextButton).bottom,
+            closeTo(844 - 280 - 24, 0.01),
+          );
+          tester.view.resetViewInsets();
+          tester.view.padding = FakeViewPadding(top: topInset, bottom: 24);
+          await tester.pump();
+          expect(tester.getRect(h.nextButton), footer);
+          expect(tester.takeException(), isNull);
+        }
+
+        await expectHeader(1);
+        await h.choose('Plumbing');
+        await h.next();
+        await expectHeader(2);
+        await h.choose('Sink Issue');
+        await h.next();
+        await expectHeader(3);
+        await h.choose('Kitchen');
+        await h.next();
+        await expectHeader(4);
+        await h.choose('Ceiling');
+        await h.next();
+        await h.tap(find.text('Start Adding Evidence'));
+        await expectHeader(5);
+      },
+    );
+  }
+
   const sizes = [
     Size(320, 568),
     Size(375, 667),
@@ -122,7 +186,7 @@ void main() {
       expect(tester.getSize(locations.first).height, closeTo(width, 0.01));
       await h.next();
       final header = find.byType(CaseCreationHeader);
-      expect(tester.getTopLeft(header).dy, 60);
+      expect(tester.getTopLeft(header).dy, 20);
       expect(tester.getSize(header).height, closeTo(59, 0.01));
       expectFourColumns(tester, h, 393);
       final cards = find.byType(CaseAreaCard);

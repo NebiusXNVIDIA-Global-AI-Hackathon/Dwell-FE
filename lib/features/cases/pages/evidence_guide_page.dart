@@ -11,7 +11,7 @@ class EvidenceGuidePage extends StatelessWidget {
     backgroundColor: const Color(0xFFF7F7F7),
     body: SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(15, 60, 15, 38),
+        padding: const EdgeInsets.fromLTRB(15, 20, 15, 38),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
