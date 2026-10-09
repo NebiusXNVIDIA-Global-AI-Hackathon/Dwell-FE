@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../../controllers/evidence_controller.dart';
 import '../../../models/evidence_model.dart';
 import '../evidence/evidence_video_preview.dart';
+import '../evidence/evidence_audio_preview.dart';
 import '../evidence/evidence_video_thumbnail.dart';
 
 class EvidenceStep extends StatelessWidget {
@@ -30,30 +31,31 @@ class EvidenceStep extends StatelessWidget {
     evidence!.remove(item.id);
   }
 
-  Widget _delete(
-    EvidenceModel item,
-    int index, {
-    bool main = false,
-  }) => SizedBox(
-    width: main ? 44 : 28,
-    height: main ? 44 : 28,
-    child: IconButton(
-      tooltip: main
-          ? 'Delete selected evidence'
-          : 'Delete ${item.type == EvidenceType.video ? 'video' : 'photo'} ${index + 1}',
-      onPressed: () => _remove(item),
-      padding: EdgeInsets.zero,
-      icon: Container(
-        width: main ? 28 : 18,
-        height: main ? 28 : 18,
-        decoration: const BoxDecoration(
-          color: Colors.black38,
-          shape: BoxShape.circle,
+  Widget _delete(EvidenceModel item, int index, {bool main = false}) =>
+      SizedBox(
+        width: main ? 44 : 28,
+        height: main ? 44 : 28,
+        child: IconButton(
+          tooltip: main
+              ? 'Delete selected evidence'
+              : 'Delete ${item.type.name} ${index + 1}',
+          onPressed: () => _remove(item),
+          padding: EdgeInsets.zero,
+          icon: Container(
+            width: main ? 28 : 18,
+            height: main ? 28 : 18,
+            decoration: const BoxDecoration(
+              color: Colors.black38,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              LucideIcons.x,
+              size: main ? 20 : 14,
+              color: Colors.white,
+            ),
+          ),
         ),
-        child: Icon(LucideIcons.x, size: main ? 20 : 14, color: Colors.white),
-      ),
-    ),
-  );
+      );
 
   Widget _add({double size = 72}) => Semantics(
     label: 'Add evidence',
@@ -102,7 +104,7 @@ class EvidenceStep extends StatelessWidget {
           button: true,
           selected: item.id == selected.id,
           label:
-              '${item.type == EvidenceType.video ? 'Video' : 'Photo'} ${index + 1}',
+              '${item.type.name[0].toUpperCase()}${item.type.name.substring(1)} ${index + 1}',
           child: Material(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
@@ -121,6 +123,14 @@ class EvidenceStep extends StatelessWidget {
                   ? EvidenceVideoThumbnail(
                       key: ValueKey('thumbnail-${item.id}'),
                       evidence: item,
+                    )
+                  : item.type == EvidenceType.audio
+                  ? const ColoredBox(
+                      color: Color(0xFFE3E3E3),
+                      child: Padding(
+                        padding: EdgeInsets.all(8),
+                        child: EvidenceAudioWave(),
+                      ),
                     )
                   : Image.memory(
                       item.bytes,
@@ -159,6 +169,12 @@ class EvidenceStep extends StatelessWidget {
               children: [
                 selected.type == EvidenceType.video
                     ? EvidenceVideoPreview(
+                        key: ValueKey(selected.id),
+                        evidence: selected,
+                        active: !isSheetOpen,
+                      )
+                    : selected.type == EvidenceType.audio
+                    ? EvidenceAudioPreview(
                         key: ValueKey(selected.id),
                         evidence: selected,
                         active: !isSheetOpen,

@@ -5,6 +5,7 @@ import '../controllers/evidence_controller.dart';
 import '../services/evidence_library.dart';
 import 'evidence/evidence_camera_page.dart';
 import 'evidence/evidence_video_page.dart';
+import 'evidence/evidence_audio_page.dart';
 import '../services/evidence_video_diagnostics.dart';
 import '../models/evidence_model.dart';
 
@@ -55,6 +56,7 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage> {
   bool _isEvidenceSheetOpen = false;
   bool _isLibraryPickerOpen = false;
   bool _isVideoPageOpen = false;
+  bool _isAudioPageOpen = false;
   bool _isSafetyNoticeOpen = false;
   bool _isExitNoticeOpen = false;
 
@@ -196,6 +198,7 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage> {
     if (_isEvidenceSheetOpen ||
         _isLibraryPickerOpen ||
         _isVideoPageOpen ||
+        _isAudioPageOpen ||
         _isExitNoticeOpen ||
         _allowLeave) {
       return;
@@ -231,9 +234,31 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage> {
         await _pickLibraryPhotos();
       } else if (source == EvidenceSource.video) {
         await _recordVideo();
+      } else if (source == EvidenceSource.audio) {
+        await _recordAudio();
       }
     } finally {
       if (mounted) setState(() => _isEvidenceSheetOpen = false);
+    }
+  }
+
+  Future<void> _recordAudio() async {
+    if (_isAudioPageOpen || _allowLeave) return;
+    _isAudioPageOpen = true;
+    try {
+      final audio = await ref.read(evidenceAudioLauncherProvider)(context);
+      if (audio == null) return;
+      if (mounted && !_allowLeave) {
+        _evidence.add(audio);
+      } else {
+        await audio.dispose();
+      }
+    } catch (_) {
+      if (mounted && !_allowLeave) {
+        _showLibraryMessage('Unable to record audio. Please try again.');
+      }
+    } finally {
+      _isAudioPageOpen = false;
     }
   }
 

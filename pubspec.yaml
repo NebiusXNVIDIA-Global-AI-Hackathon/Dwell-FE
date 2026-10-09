@@ -53,6 +53,7 @@ dependencies:
   video_player: ^2.14.1
   path_provider: ^2.1.6
   video_thumbnail_gen: ^0.6.3
+  record: ^7.1.2
 
 dev_dependencies:
   flutter_test:

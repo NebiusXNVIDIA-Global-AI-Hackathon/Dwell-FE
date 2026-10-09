@@ -8,9 +8,9 @@ import 'package:camera/camera.dart';
 import 'package:flutter/painting.dart';
 import 'package:path_provider/path_provider.dart';
 
-enum EvidenceType { photo, video }
+enum EvidenceType { photo, video, audio }
 
-/// Session evidence: photos share bytes; videos own a private cache file.
+/// Session evidence: photos share bytes; recordings own a private cache file.
 class EvidenceModel {
   EvidenceModel._({
     required this.id,
@@ -163,6 +163,51 @@ class EvidenceModel {
     final directory = _videoDirectory;
     if (directory != null && await directory.exists()) {
       await directory.delete(recursive: true);
+    }
+  }
+
+  /// Audio shares the owned session-file lifetime used by recorded videos.
+  static Future<EvidenceModel> fromAudio(
+    XFile file, {
+    required Duration duration,
+    Directory? storageDirectory,
+  }) async {
+    if (duration <= Duration.zero) {
+      throw const FormatException('Invalid audio duration.');
+    }
+    if (await file.length() <= 12) {
+      throw const FormatException('Empty audio file.');
+    }
+    final header = await file
+        .openRead(0, 12)
+        .fold<List<int>>([], (a, b) => a..addAll(b));
+    if (header.length < 12 ||
+        String.fromCharCodes(header.sublist(4, 8)) != 'ftyp') {
+      throw const FormatException('Unsupported audio file.');
+    }
+    final base = storageDirectory ?? await getTemporaryDirectory();
+    final directory = await Directory(base.path).createTemp('dwell-audio-');
+    try {
+      final destination = File('${directory.path}/recording.m4a');
+      await file.saveTo(destination.path);
+      final size = await file.length();
+      if (size <= 12 || await destination.length() != size) {
+        throw const FormatException('Empty or incomplete audio file.');
+      }
+      final now = DateTime.now();
+      return EvidenceModel._(
+        id: '${now.microsecondsSinceEpoch}-${++_sequence}',
+        file: XFile(destination.path),
+        bytes: Uint8List(0),
+        mimeType: 'audio/mp4',
+        addedAt: now,
+        type: EvidenceType.audio,
+        duration: duration,
+        videoDirectory: directory,
+      );
+    } catch (_) {
+      await directory.delete(recursive: true);
+      rethrow;
     }
   }
 
