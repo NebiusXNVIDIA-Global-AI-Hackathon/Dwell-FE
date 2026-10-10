@@ -294,7 +294,10 @@ class _EvidenceAudioPageState extends State<EvidenceAudioPage>
     _result = null;
     setState(() => _canPop = true);
     await WidgetsBinding.instance.endOfFrame;
-    if (mounted) Navigator.of(context).pop(result);
+    if (mounted) {
+      debugPrint('[RecordAudio] Navigator.pop result=${result.id}');
+      Navigator.of(context).pop(result);
+    }
   }
 
   Future<void> _back() async {

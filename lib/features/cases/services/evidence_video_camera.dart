@@ -5,11 +5,11 @@ import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
-import 'package:video_player/video_player.dart';
 
 import '../models/evidence_model.dart';
 import '../widgets/creation/evidence/evidence_camera_cover_preview.dart';
 import 'evidence_video_diagnostics.dart';
+import 'evidence_media_platform.dart';
 
 abstract interface class EvidenceVideoCamera implements Listenable {
   String? get errorDescription;
@@ -115,7 +115,10 @@ class DeviceEvidenceVideoCamera extends ChangeNotifier
 
   @override
   Future<void> discardFile(XFile file) async {
-    if (kIsWeb) return;
+    if (kIsWeb) {
+      releaseEvidenceBlob(file);
+      return;
+    }
     final local = File(file.path);
     if (await local.exists()) await local.delete();
   }
@@ -183,41 +186,52 @@ Future<EvidenceModel> saveEvidenceVideo(
   }
   await recordVideoStage('recording file check', () async {
     final size = await file.length();
-    logRecordVideo('XFile path=${file.path} bytes=$size');
+    logRecordVideo('XFile name=${file.name} mime=${file.mimeType} bytes=$size');
     if (size == 0) throw const FormatException('The recording file is empty.');
   });
-  final player = VideoPlayerController.file(File(file.path));
-  late Duration duration;
+  final prepared = await recordVideoStage(
+    'container and browser validation',
+    () => prepareEvidenceMedia(file, audio: false),
+    onLateResult: (item) async {
+      if (item != file) releaseEvidenceBlob(item);
+    },
+  );
   try {
-    await recordVideoStage(
-      'VideoPlayerController.initialize',
-      player.initialize,
-      timeout: validationTimeout,
-    );
-    duration = player.value.duration;
-    logRecordVideo('encoded duration=${duration.inMilliseconds}ms');
-    if (duration < const Duration(seconds: 5)) {
-      throw const FormatException('Video is too short.');
-    }
-  } finally {
+    final player = evidenceMediaPlayer(prepared);
+    late Duration duration;
     try {
       await recordVideoStage(
-        'validation player dispose',
-        player.dispose,
-        timeout: cleanupTimeout,
+        'VideoPlayerController.initialize',
+        player.initialize,
+        timeout: validationTimeout,
       );
-    } catch (error, stack) {
-      // Creation errors can leave the plugin's creatingCompleter unresolved.
-      // Do not let cleanup replace the validation error or wait forever.
-      logRecordVideo('validation player cleanup incomplete', error, stack);
+      duration = player.value.duration;
+      logRecordVideo('encoded duration=${duration.inMilliseconds}ms');
+      if (player.value.hasError || duration < const Duration(seconds: 5)) {
+        throw const FormatException('Video is too short.');
+      }
+    } finally {
+      try {
+        await recordVideoStage(
+          'validation player dispose',
+          player.dispose,
+          timeout: cleanupTimeout,
+        );
+      } catch (error, stack) {
+        // Creation errors can leave the plugin's creatingCompleter unresolved.
+        // Do not let cleanup replace the validation error or wait forever.
+        logRecordVideo('validation player cleanup incomplete', error, stack);
+      }
     }
+    return await recordVideoStage(
+      'cache copy',
+      () => EvidenceModel.fromVideo(prepared, duration: duration),
+      timeout: const Duration(seconds: 15),
+      onLateResult: (model) => model.dispose(),
+    );
+  } finally {
+    if (prepared != file) releaseEvidenceBlob(prepared);
   }
-  return recordVideoStage(
-    'cache copy',
-    () => EvidenceModel.fromVideo(file, duration: duration),
-    timeout: const Duration(seconds: 15),
-    onLateResult: (model) => model.dispose(),
-  );
 }
 
 String evidenceVideoError(Object error) {
@@ -229,6 +243,9 @@ String evidenceVideoError(Object error) {
   }
   if (error is CameraException) {
     final code = error.code.toLowerCase();
+    if (code.contains('notsupported') || code.contains('not_supported')) {
+      return 'This browser does not support a usable video recording format. Try another browser.';
+    }
     if (code.contains('audio') &&
         (code.contains('denied') || code.contains('restricted'))) {
       return 'Microphone access was denied. Allow microphone access in your device settings.';

@@ -1,18 +1,19 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../models/evidence_model.dart';
+import '../../../services/evidence_media_platform.dart';
+import '../../../services/evidence_video_diagnostics.dart';
 
 typedef EvidenceVideoPlayerFactory = VideoPlayerController Function(
   EvidenceModel,
 );
 final evidenceVideoPlayerFactoryProvider = Provider<EvidenceVideoPlayerFactory>(
   (ref) =>
-      (evidence) => VideoPlayerController.file(File(evidence.file.path)),
+      (evidence) => evidenceMediaPlayer(evidence.file),
 );
 
 class EvidenceVideoPreview extends ConsumerStatefulWidget {
@@ -53,7 +54,8 @@ class _EvidenceVideoPreviewState extends ConsumerState<EvidenceVideoPreview>
       );
       _player = player;
       player.addListener(_changed);
-      await player.initialize();
+      await recordVideoStage('preview initialize', player.initialize);
+      if (player.value.hasError) throw StateError('Playback unavailable.');
       if (mounted) setState(() => _ready = true);
     } catch (_) {
       if (mounted) setState(() => _error = true);

@@ -1,12 +1,15 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:camera/camera.dart';
 import 'package:flutter/painting.dart';
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
+
+import '../services/evidence_media_platform.dart';
+import '../services/evidence_media_format.dart';
 
 enum EvidenceType { photo, video, audio }
 
@@ -121,6 +124,7 @@ class EvidenceModel {
     if (duration < const Duration(seconds: 5)) {
       throw const FormatException('Record at least 5 seconds of video.');
     }
+    if (kIsWeb) return _fromBrowserMedia(file, duration, EvidenceType.video);
     final header = await file
         .openRead(0, 12)
         .fold<List<int>>([], (a, b) => a..addAll(b));
@@ -181,6 +185,7 @@ class EvidenceModel {
       await _readersReleased!.future;
     }
     final directory = _videoDirectory;
+    if (kIsWeb && type != EvidenceType.photo) releaseEvidenceBlob(file);
     if (directory != null && await directory.exists()) {
       await directory.delete(recursive: true);
     }
@@ -195,6 +200,7 @@ class EvidenceModel {
     if (duration <= Duration.zero) {
       throw const FormatException('Invalid audio duration.');
     }
+    if (kIsWeb) return _fromBrowserMedia(file, duration, EvidenceType.audio);
     if (await file.length() <= 12) {
       throw const FormatException('Empty audio file.');
     }
@@ -232,6 +238,30 @@ class EvidenceModel {
   }
 
   static Future<EvidenceModel> fromCapture(XFile file) => fromFile(file);
+
+  static Future<EvidenceModel> _fromBrowserMedia(
+    XFile file,
+    Duration duration,
+    EvidenceType type,
+  ) async {
+    final data = await file.readAsBytes();
+    final format = evidenceMediaFormat(data, audio: type == EvidenceType.audio);
+    final owned = createEvidenceBlob(
+      data,
+      format.mime,
+      'recording.${format.extension}',
+    );
+    final now = DateTime.now();
+    return EvidenceModel._(
+      id: '${now.microsecondsSinceEpoch}-${++_sequence}',
+      file: owned,
+      bytes: Uint8List(0),
+      mimeType: format.mime,
+      addedAt: now,
+      type: type,
+      duration: duration,
+    );
+  }
 
   static Future<EvidenceModel> fromFile(XFile file) async {
     final bytes = await file.readAsBytes();

@@ -1,6 +1,6 @@
-import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
 import 'package:video_thumbnail_gen/video_thumbnail_gen.dart';
 
 import '../models/evidence_model.dart';
@@ -11,17 +11,19 @@ typedef EvidenceThumbnailExtractor = Future<Uint8List?> Function(
 );
 final evidenceThumbnailExtractorProvider = Provider<EvidenceThumbnailExtractor>(
   (ref) =>
-      (path, timeMs) => VideoThumbnail.thumbnailData(
-        video: path,
-        timeMs: timeMs,
-        imageFormat: ImageFormat.JPEG,
-        maxWidth: 256,
-        quality: 80,
-      ),
+      (path, timeMs) => kIsWeb
+      ? Future.value(null)
+      : VideoThumbnail.thumbnailData(
+          video: path,
+          timeMs: timeMs,
+          imageFormat: ImageFormat.JPEG,
+          maxWidth: 256,
+          quality: 80,
+        ),
 );
 
 final evidenceThumbnailCacheClearerProvider = Provider<Future<void> Function()>(
-  (ref) => VideoThumbnail.clearCache,
+  (ref) => kIsWeb ? () async {} : VideoThumbnail.clearCache,
 );
 
 /// Stay within the clip, including short clips from any future input source.

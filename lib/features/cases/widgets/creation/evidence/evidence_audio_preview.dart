@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -8,12 +7,13 @@ import 'package:video_player/video_player.dart';
 
 import '../../../models/evidence_model.dart';
 import '../../../services/evidence_audio_recorder.dart';
+import '../../../services/evidence_media_platform.dart';
 import 'evidence_audio_amplitude_wave.dart';
 
 final evidenceAudioPlayerFactoryProvider =
     Provider<VideoPlayerController Function(EvidenceModel)>(
       (ref) =>
-          (item) => VideoPlayerController.file(File(item.file.path)),
+          (item) => evidenceMediaPlayer(item.file),
     );
 String evidenceAudioTime(Duration value) =>
     '${value.inMinutes.toString().padLeft(2, '0')}:${(value.inSeconds % 60).toString().padLeft(2, '0')}';
