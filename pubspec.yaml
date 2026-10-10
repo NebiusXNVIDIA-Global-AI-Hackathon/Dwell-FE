@@ -55,6 +55,7 @@ dependencies:
   video_thumbnail_gen: ^0.6.3
   record: ^7.1.2
   web: ^1.1.1
+  url_launcher: ^6.3.3
 
 dev_dependencies:
   flutter_test:
