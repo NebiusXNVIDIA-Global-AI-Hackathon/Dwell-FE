@@ -6,6 +6,10 @@ abstract final class Gap {
   static const md = 16.0;
   static const lg = 24.0;
   static const xl = 40.0;
+
+  // 용도 고정 — 와프 전 화면 반복
+  static const card = 12.0;
+  static const screenH = 20.0;
 }
 
 // seed 하나로 라이트/다크 팔레트 전체 생성(앱 전체 테마 색상 만드는 기준색)
