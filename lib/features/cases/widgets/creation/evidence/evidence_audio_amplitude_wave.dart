@@ -1,5 +1,28 @@
 import 'package:flutter/material.dart';
 
+/// Equal time bins preserve silence and gaps rather than stretching samples.
+/// Without timestamps, legacy levels are evenly distributed over the file.
+List<double> summarizeEvidenceAudio(
+  List<double> levels,
+  List<Duration> times,
+  Duration duration,
+) {
+  final sums = List.filled(15, 0.0);
+  final counts = List.filled(15, 0);
+  if (duration <= Duration.zero) return sums;
+  for (var i = 0; i < levels.length; i++) {
+    if (!levels[i].isFinite) continue;
+    final fraction = times.length == levels.length
+        ? times[i].inMicroseconds / duration.inMicroseconds
+        : (i + 0.5) / levels.length;
+    if (fraction < 0 || fraction > 1) continue;
+    final bin = (fraction * 15).floor().clamp(0, 14);
+    sums[bin] += levels[i].clamp(0, 1);
+    counts[bin]++;
+  }
+  return List.generate(15, (i) => counts[i] == 0 ? 0 : sums[i] / counts[i]);
+}
+
 /// Time-ordered dBFS envelope, not decoded PCM. EMA reduces meter jitter.
 class EvidenceAudioEnvelope {
   final List<double> _levels = [];
@@ -27,9 +50,13 @@ class EvidenceAudioAmplitudeWave extends StatelessWidget {
     super.key,
     required this.levels,
     this.animate = true,
+    this.playbackLevels,
+    this.progress = 0,
   });
   final List<double> levels;
   final bool animate;
+  final List<double>? playbackLevels;
+  final double progress;
   static const barWidth = 6.0;
   static const gap = 10.0;
   static const profile = <double>[
@@ -55,7 +82,9 @@ class EvidenceAudioAmplitudeWave extends StatelessWidget {
         ? 0.0
         : levels.last.clamp(0, 1).toDouble();
     return Semantics(
-      label: 'Live microphone level',
+      label: playbackLevels == null
+          ? 'Live microphone level'
+          : 'Recorded audio amplitude overview',
       child: LayoutBuilder(
         builder: (context, size) {
           const naturalWidth = 15 * barWidth + 14 * gap;
@@ -81,17 +110,43 @@ class EvidenceAudioAmplitudeWave extends StatelessWidget {
                         width: barWidth * scale,
                         height:
                             minimum +
-                            (size.maxHeight - minimum) * profile[i] * level,
+                            (size.maxHeight - minimum) *
+                                (playbackLevels == null
+                                    ? profile[i] * level
+                                    : (0.55 + 0.45 * profile[i]) *
+                                          playbackLevels![i]),
                         decoration: BoxDecoration(
                           // Expand from the left with level, never with elapsed time.
                           // Retain at least the rightmost light bar even at full input.
-                          color: Color.lerp(
-                            const Color(0xFFE5E5E5),
-                            const Color(0xFF666666),
-                            (level * 14 - i).clamp(0, 1).toDouble(),
-                          ),
+                          color: playbackLevels != null
+                              ? const Color(0xFFE5E5E5)
+                              : Color.lerp(
+                                  const Color(0xFFE5E5E5),
+                                  const Color(0xFF666666),
+                                  (level * 14 - i).clamp(0, 1).toDouble(),
+                                ),
                           borderRadius: BorderRadius.circular(barWidth),
                         ),
+                        child: playbackLevels == null
+                            ? null
+                            : ClipRRect(
+                                borderRadius: BorderRadius.circular(barWidth),
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: FractionallySizedBox(
+                                    widthFactor:
+                                        ((progress.isFinite ? progress : 0) *
+                                                    15 -
+                                                i)
+                                            .clamp(0, 1)
+                                            .toDouble(),
+                                    heightFactor: 1,
+                                    child: const ColoredBox(
+                                      color: Color(0xFF1684FF),
+                                    ),
+                                  ),
+                                ),
+                              ),
                       ),
                   ],
                 ),

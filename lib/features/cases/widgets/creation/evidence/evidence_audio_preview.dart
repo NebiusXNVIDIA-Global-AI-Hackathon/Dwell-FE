@@ -53,6 +53,8 @@ class EvidenceAudioPreview extends ConsumerStatefulWidget {
 class _EvidenceAudioPreviewState extends ConsumerState<EvidenceAudioPreview>
     with WidgetsBindingObserver {
   VideoPlayerController? _player;
+  double? _pendingSeek;
+  bool _seeking = false;
   bool _ready = false,
       _busy = false,
       _error = false,
@@ -120,6 +122,34 @@ class _EvidenceAudioPreviewState extends ConsumerState<EvidenceAudioPreview>
     }
   }
 
+  Future<void> _seek(double fraction) async {
+    final player = _player;
+    if (player == null || _busy || !widget.active || !_active) return;
+    _pendingSeek = fraction;
+    if (_seeking) return;
+    _seeking = true;
+    try {
+      while (mounted && widget.active && _active && _pendingSeek != null) {
+        final target = _pendingSeek!;
+        _pendingSeek = null;
+        await audioStage(
+          'preview seek',
+          () => player.seekTo(
+            Duration(
+              microseconds: (player.value.duration.inMicroseconds * target)
+                  .round(),
+            ),
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) setState(() => _error = true);
+    } finally {
+      _pendingSeek = null;
+      _seeking = false;
+    }
+  }
+
   @override
   void didUpdateWidget(covariant EvidenceAudioPreview oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -163,6 +193,16 @@ class _EvidenceAudioPreviewState extends ConsumerState<EvidenceAudioPreview>
   @override
   Widget build(BuildContext context) {
     final player = _player;
+    final duration = player?.value.duration ?? Duration.zero;
+    final position = player?.value.position ?? Duration.zero;
+    final progress = duration.inMicroseconds > 0
+        ? (position.inMicroseconds / duration.inMicroseconds)
+              .clamp(0, 1)
+              .toDouble()
+        : 0.0;
+    final hasLevels = widget.evidence.audioLevels.any(
+      (level) => level.isFinite,
+    );
     return Container(
       color: const Color(0xFFF7F7F7),
       padding: const EdgeInsets.fromLTRB(12, 24, 12, 12),
@@ -185,9 +225,24 @@ class _EvidenceAudioPreviewState extends ConsumerState<EvidenceAudioPreview>
                   child: EvidenceAudioAmplitudeWave(
                     levels: widget.evidence.audioLevels,
                     animate: false,
+                    playbackLevels: hasLevels
+                        ? summarizeEvidenceAudio(
+                            widget.evidence.audioLevels,
+                            widget.evidence.audioLevelTimes,
+                            widget.evidence.audioCaptureDuration ?? duration,
+                          )
+                        : EvidenceAudioAmplitudeWave.profile
+                              .map((v) => v * 0.5)
+                              .toList(),
+                    progress: progress,
                   ),
                 ),
                 const SizedBox(height: 12),
+                if (!hasLevels)
+                  const Text(
+                    'Amplitude data unavailable — illustrative waveform',
+                    style: TextStyle(fontSize: 12, color: Color(0xFF627381)),
+                  ),
                 Text(
                   '${evidenceAudioTime(player.value.position)} / ${evidenceAudioTime(player.value.duration)}',
                   key: const ValueKey('evidence-audio-time'),
@@ -212,9 +267,19 @@ class _EvidenceAudioPreviewState extends ConsumerState<EvidenceAudioPreview>
                       ),
                     ),
                     Expanded(
-                      child: VideoProgressIndicator(
-                        player,
-                        allowScrubbing: false,
+                      child: Slider(
+                        key: const ValueKey('evidence-audio-progress'),
+                        value: progress,
+                        activeColor: const Color(0xFF1684FF),
+                        onChanged:
+                            _busy ||
+                                !widget.active ||
+                                !_active ||
+                                duration <= Duration.zero
+                            ? null
+                            : (value) {
+                                unawaited(_seek(value));
+                              },
                       ),
                     ),
                   ],

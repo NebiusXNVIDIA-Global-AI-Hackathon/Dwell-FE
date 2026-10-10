@@ -70,7 +70,10 @@ class FakeEvidenceVideoPlayer extends VideoPlayerPlatform {
   @override
   Future<void> setPlaybackSpeed(int playerId, double speed) async {}
   @override
-  Future<void> seekTo(int playerId, Duration position) async {}
+  Future<void> seekTo(int playerId, Duration position) async {
+    this.position = position;
+  }
+
   @override
   Future<Duration> getPosition(int playerId) async => position;
   @override

@@ -217,6 +217,51 @@ void main() {
     await tester.runAsync(() => audio!.dispose());
   });
   testWidgets(
+    'Wave and slider share playback position, pause, seek and completion',
+    (tester) async {
+      final audio = await tester.runAsync(model);
+      await open(tester, FakeRecorder(), saver: (_) async => audio!);
+      await tap(tester, toggle);
+      await tap(tester, toggle);
+      expect(find.textContaining('illustrative waveform'), findsOneWidget);
+      double wave() => tester
+          .widget<EvidenceAudioAmplitudeWave>(
+            find.byType(EvidenceAudioAmplitudeWave),
+          )
+          .progress;
+      Slider slider() => tester.widget<Slider>(
+        find.byKey(const ValueKey('evidence-audio-progress')),
+      );
+      expect(wave(), 0);
+      await tap(tester, find.byKey(const ValueKey('evidence-audio-play')));
+      player.position = const Duration(milliseconds: 500);
+      await tester.pump(const Duration(milliseconds: 150));
+      await tester.pump();
+      expect(wave(), 0.25);
+      expect(slider().value, wave());
+      await tap(tester, find.byKey(const ValueKey('evidence-audio-play')));
+      final paused = wave();
+      player.position = const Duration(seconds: 1);
+      await tester.pump(const Duration(seconds: 1));
+      expect(wave(), paused);
+      slider().onChanged!(0.75);
+      await tester.pumpAndSettle();
+      expect(wave(), 0.75);
+      expect(slider().value, wave());
+      expect(find.text('00:01 / 00:02'), findsOneWidget);
+      await tap(tester, find.byKey(const ValueKey('evidence-audio-play')));
+      player.streams.values.last.add(
+        VideoEvent(eventType: VideoEventType.completed),
+      );
+      await tester.pumpAndSettle();
+      expect(wave(), 1);
+      expect(slider().value, 1);
+      await tap(tester, find.byKey(const ValueKey('evidence-audio-play')));
+      expect(wave(), 0);
+      await tap(tester, find.byTooltip('Back'));
+    },
+  );
+  testWidgets(
     'Permission rejection and native errors recover without adding evidence',
     (tester) async {
       final recorder = FakeRecorder()..permission = false;
@@ -651,11 +696,19 @@ void main() {
       expect(recorder.amplitudeStream.hasListener, isFalse);
       expect(levels(), captured);
       expect(audio!.audioLevels, captured);
+      expect(audio.audioLevelTimes.length, captured.length);
+      expect(audio.audioCaptureDuration, isNotNull);
+      expect(
+        audio.audioLevelTimes.last,
+        lessThanOrEqualTo(audio.audioCaptureDuration!),
+      );
       await tester.pump(const Duration(seconds: 2));
       expect(levels(), captured);
       await tap(tester, find.byKey(const ValueKey('audio-retake')));
       expect(levels(), isEmpty);
       expect(audio.audioLevels, isEmpty);
+      expect(audio.audioLevelTimes, isEmpty);
+      expect(audio.audioCaptureDuration, isNull);
       await tap(tester, find.byTooltip('Back'));
       final cancelled = FakeRecorder();
       await open(tester, cancelled);

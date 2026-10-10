@@ -3,6 +3,76 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test(
+    'Playback bins use elapsed time, preserve gaps and reject invalid input',
+    () {
+      final bins = summarizeEvidenceAudio(
+        [0.2, 0.8, 1, double.nan],
+        [
+          const Duration(milliseconds: 100),
+          const Duration(milliseconds: 200),
+          const Duration(seconds: 14),
+          const Duration(seconds: 7),
+        ],
+        const Duration(seconds: 15),
+      );
+      expect(bins.length, 15);
+      expect(bins[0], 0.5);
+      expect(bins[7], 0);
+      expect(bins[14], 1);
+      expect(summarizeEvidenceAudio([], [], Duration.zero), List.filled(15, 0));
+      expect(
+        summarizeEvidenceAudio([0.2, 0.8], [], const Duration(seconds: 2))[11],
+        0.8,
+      );
+    },
+  );
+  testWidgets(
+    'Playback heights reflect bins and blue fill follows position without moving',
+    (tester) async {
+      Future<void> showPlayback(double progress) => tester.pumpWidget(
+        MaterialApp(
+          home: Center(
+            child: SizedBox(
+              width: 353,
+              height: 150,
+              child: EvidenceAudioAmplitudeWave(
+                levels: const [],
+                animate: false,
+                playbackLevels: List.generate(15, (i) => i == 6 ? 0.1 : 0.8),
+                progress: progress,
+              ),
+            ),
+          ),
+        ),
+      );
+      await showPlayback(0);
+      final center = tester.getCenter(
+        find.byKey(const ValueKey('amplitude-7')),
+      );
+      expect(
+        tester.getSize(find.byKey(const ValueKey('amplitude-6'))).height,
+        lessThan(
+          tester.getSize(find.byKey(const ValueKey('amplitude-7'))).height,
+        ),
+      );
+      List<double?> fills() => tester
+          .widgetList<FractionallySizedBox>(find.byType(FractionallySizedBox))
+          .map((v) => v.widthFactor)
+          .toList();
+      expect(fills(), List.filled(15, 0));
+      await showPlayback(0.5);
+      expect(fills(), [...List.filled(7, 1.0), 0.5, ...List.filled(7, 0.0)]);
+      expect(
+        tester.getCenter(find.byKey(const ValueKey('amplitude-7'))),
+        center,
+      );
+      await showPlayback(1);
+      expect(fills(), List.filled(15, 1));
+      await showPlayback(0);
+      expect(fills(), List.filled(15, 0));
+    },
+  );
   test('Silence, quiet and loud input normalize and EMA smooths changes', () {
     final envelope = EvidenceAudioEnvelope();
     envelope.add(-60);

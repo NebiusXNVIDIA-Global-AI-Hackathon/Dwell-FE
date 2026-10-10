@@ -32,9 +32,18 @@ class EvidenceModel {
   final Duration? duration;
   List<double> _audioLevels = const [];
   List<double> get audioLevels => _audioLevels;
-  void setAudioLevels(List<double> levels) {
+  List<Duration> _audioLevelTimes = const [];
+  List<Duration> get audioLevelTimes => _audioLevelTimes;
+  Duration? audioCaptureDuration;
+  void setAudioLevels(
+    List<double> levels, {
+    List<Duration> times = const [],
+    Duration? captureDuration,
+  }) {
     if (type == EvidenceType.audio && !isDisposed) {
       _audioLevels = List.unmodifiable(levels);
+      _audioLevelTimes = List.unmodifiable(times);
+      audioCaptureDuration = captureDuration;
     }
   }
 
@@ -154,6 +163,8 @@ class EvidenceModel {
   Future<void> dispose() {
     if (_disposing != null) return _disposing!;
     _audioLevels = const [];
+    _audioLevelTimes = const [];
+    audioCaptureDuration = null;
     final bytes = _thumbnailBytes;
     _thumbnailBytes = null;
     _thumbnail = null;

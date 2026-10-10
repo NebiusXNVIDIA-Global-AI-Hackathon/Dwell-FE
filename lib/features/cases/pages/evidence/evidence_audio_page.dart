@@ -38,6 +38,7 @@ class _EvidenceAudioPageState extends State<EvidenceAudioPage>
   StreamSubscription<RecordState>? _states;
   StreamSubscription<Amplitude>? _amplitudes;
   final _envelope = EvidenceAudioEnvelope();
+  final List<Duration> _levelTimes = [];
   EvidenceModel? _result;
   final _watch = Stopwatch();
   Timer? _timer;
@@ -71,6 +72,7 @@ class _EvidenceAudioPageState extends State<EvidenceAudioPage>
       _busy = true;
       _error = null;
       _envelope.clear();
+      _levelTimes.clear();
     });
     EvidenceAudioRecorder? recorder;
     try {
@@ -144,7 +146,10 @@ class _EvidenceAudioPageState extends State<EvidenceAudioPage>
             generation != _generation) {
           return;
         }
-        setState(() => _envelope.add(amplitude.current));
+        setState(() {
+          _envelope.add(amplitude.current);
+          _levelTimes.add(_elapsed);
+        });
       }, onError: failed);
     } catch (error) {
       failed(error);
@@ -164,6 +169,7 @@ class _EvidenceAudioPageState extends State<EvidenceAudioPage>
     final generation = _generation;
     _timer?.cancel();
     _watch.stop();
+    final captureDuration = _elapsed;
     setState(() => _busy = true);
     await _stopAmplitude();
     EvidenceModel? result;
@@ -182,7 +188,11 @@ class _EvidenceAudioPageState extends State<EvidenceAudioPage>
         result = null;
         return;
       }
-      result.setAudioLevels(_envelope.levels);
+      result.setAudioLevels(
+        _envelope.levels,
+        times: _levelTimes,
+        captureDuration: captureDuration,
+      );
       _result = result;
     } catch (error) {
       if (error is TimeoutException) _needsReopen = true;
@@ -201,7 +211,10 @@ class _EvidenceAudioPageState extends State<EvidenceAudioPage>
   Future<void> _releaseRecorder(EvidenceAudioRecorder recorder) async {
     if (_recorder == recorder) _recorder = null;
     await _stopAmplitude();
-    if (_result == null) _envelope.clear();
+    if (_result == null) {
+      _envelope.clear();
+      _levelTimes.clear();
+    }
     final states = _states;
     _states = null;
     try {
@@ -225,6 +238,7 @@ class _EvidenceAudioPageState extends State<EvidenceAudioPage>
     if (_closing) return;
     ++_generation;
     _envelope.clear();
+    _levelTimes.clear();
     unawaited(_stopAmplitude());
     _timer?.cancel();
     _watch.stop();
@@ -250,6 +264,7 @@ class _EvidenceAudioPageState extends State<EvidenceAudioPage>
     final result = _result;
     _result = null;
     _envelope.clear();
+    _levelTimes.clear();
     // Remove its preview before releasing the owned file.
     setState(() {});
     await WidgetsBinding.instance.endOfFrame;
@@ -327,6 +342,7 @@ class _EvidenceAudioPageState extends State<EvidenceAudioPage>
     WidgetsBinding.instance.removeObserver(this);
     ++_generation;
     _envelope.clear();
+    _levelTimes.clear();
     unawaited(_stopAmplitude());
     _closing = true;
     _timer?.cancel();
