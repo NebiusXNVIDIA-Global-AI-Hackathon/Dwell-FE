@@ -8,6 +8,7 @@ import 'package:video_player/video_player.dart';
 
 import '../../../models/evidence_model.dart';
 import '../../../services/evidence_audio_recorder.dart';
+import 'evidence_audio_amplitude_wave.dart';
 
 final evidenceAudioPlayerFactoryProvider =
     Provider<VideoPlayerController Function(EvidenceModel)>(
@@ -30,10 +31,7 @@ class EvidenceAudioWave extends StatelessWidget {
         width: 87,
         height: 76,
         excludeFromSemantics: true,
-        colorFilter: ColorFilter.mode(
-          recorded ? const Color(0xFF007AFF) : const Color(0xFF5E5E5E),
-          BlendMode.srcIn,
-        ),
+        colorFilter: ColorFilter.mode(const Color(0xFF666666), BlendMode.srcIn),
       ),
     ),
   );
@@ -181,10 +179,13 @@ class _EvidenceAudioPreviewState extends ConsumerState<EvidenceAudioPreview>
           : Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(
+                SizedBox(
                   height: 150,
                   width: double.infinity,
-                  child: EvidenceAudioWave(recorded: true),
+                  child: EvidenceAudioAmplitudeWave(
+                    levels: widget.evidence.audioLevels,
+                    animate: false,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Text(

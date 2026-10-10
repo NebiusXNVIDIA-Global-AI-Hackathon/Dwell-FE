@@ -30,6 +30,14 @@ class EvidenceModel {
   final DateTime addedAt;
   final EvidenceType type;
   final Duration? duration;
+  List<double> _audioLevels = const [];
+  List<double> get audioLevels => _audioLevels;
+  void setAudioLevels(List<double> levels) {
+    if (type == EvidenceType.audio && !isDisposed) {
+      _audioLevels = List.unmodifiable(levels);
+    }
+  }
+
   final Directory? _videoDirectory;
   Future<void>? _disposing;
   Future<Uint8List?>? _thumbnail;
@@ -145,6 +153,7 @@ class EvidenceModel {
   /// Only this model's private, app-created recording directory is removed.
   Future<void> dispose() {
     if (_disposing != null) return _disposing!;
+    _audioLevels = const [];
     final bytes = _thumbnailBytes;
     _thumbnailBytes = null;
     _thumbnail = null;

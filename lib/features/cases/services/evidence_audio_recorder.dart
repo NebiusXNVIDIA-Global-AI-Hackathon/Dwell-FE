@@ -50,6 +50,7 @@ Future<T> audioStage<T>(
 
 abstract class EvidenceAudioRecorder {
   Stream<RecordState> get states;
+  Stream<Amplitude> get amplitudes;
   Future<bool> hasPermission();
   Future<void> start();
   Future<XFile> stop();
@@ -64,6 +65,9 @@ class DeviceEvidenceAudioRecorder implements EvidenceAudioRecorder {
   bool _closed = false;
   @override
   Stream<RecordState> get states => _recorder.onStateChanged();
+  @override
+  Stream<Amplitude> get amplitudes =>
+      _recorder.onAmplitudeChanged(const Duration(milliseconds: 100));
   @override
   Future<bool> hasPermission() => _recorder.hasPermission();
   @override

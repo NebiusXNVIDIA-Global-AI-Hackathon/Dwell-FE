@@ -8,6 +8,7 @@ import 'package:record/record.dart';
 import '../../models/evidence_model.dart';
 import '../../services/evidence_audio_recorder.dart';
 import '../../widgets/creation/evidence/evidence_audio_preview.dart';
+import '../../widgets/creation/evidence/evidence_audio_amplitude_wave.dart';
 
 final evidenceAudioLauncherProvider =
     Provider<Future<EvidenceModel?> Function(BuildContext)>(
@@ -35,6 +36,8 @@ class _EvidenceAudioPageState extends State<EvidenceAudioPage>
     with WidgetsBindingObserver {
   EvidenceAudioRecorder? _recorder;
   StreamSubscription<RecordState>? _states;
+  StreamSubscription<Amplitude>? _amplitudes;
+  final _envelope = EvidenceAudioEnvelope();
   EvidenceModel? _result;
   final _watch = Stopwatch();
   Timer? _timer;
@@ -67,6 +70,7 @@ class _EvidenceAudioPageState extends State<EvidenceAudioPage>
     setState(() {
       _busy = true;
       _error = null;
+      _envelope.clear();
     });
     EvidenceAudioRecorder? recorder;
     try {
@@ -99,6 +103,7 @@ class _EvidenceAudioPageState extends State<EvidenceAudioPage>
         ..reset()
         ..start();
       _recording = true;
+      _listenAmplitude(recorder, generation);
       _timer = Timer.periodic(const Duration(milliseconds: 200), (_) {
         if (!mounted || !_recording) return;
         if (_elapsed >= evidenceAudioLimit) {
@@ -120,12 +125,47 @@ class _EvidenceAudioPageState extends State<EvidenceAudioPage>
     }
   }
 
+  void _listenAmplitude(EvidenceAudioRecorder recorder, int generation) {
+    void failed(Object error) {
+      debugPrint('[RecordAudio] amplitude display failed: $error');
+      if (mounted && !_closing && generation == _generation) {
+        setState(
+          () => _error = 'Microphone level display is unavailable. You can still save the recording.',
+        );
+      }
+    }
+
+    try {
+      _amplitudes = recorder.amplitudes.listen((amplitude) {
+        if (!mounted ||
+            !_recording ||
+            _busy ||
+            _closing ||
+            generation != _generation) {
+          return;
+        }
+        setState(() => _envelope.add(amplitude.current));
+      }, onError: failed);
+    } catch (error) {
+      failed(error);
+    }
+  }
+
+  Future<void> _stopAmplitude() async {
+    final subscription = _amplitudes;
+    _amplitudes = null;
+    try {
+      await subscription?.cancel().timeout(const Duration(seconds: 2));
+    } catch (_) {}
+  }
+
   Future<void> _stop() async {
     final recorder = _recorder!;
     final generation = _generation;
     _timer?.cancel();
     _watch.stop();
     setState(() => _busy = true);
+    await _stopAmplitude();
     EvidenceModel? result;
     try {
       final file = await audioStage('recording stop', recorder.stop);
@@ -142,6 +182,7 @@ class _EvidenceAudioPageState extends State<EvidenceAudioPage>
         result = null;
         return;
       }
+      result.setAudioLevels(_envelope.levels);
       _result = result;
     } catch (error) {
       if (error is TimeoutException) _needsReopen = true;
@@ -159,6 +200,8 @@ class _EvidenceAudioPageState extends State<EvidenceAudioPage>
 
   Future<void> _releaseRecorder(EvidenceAudioRecorder recorder) async {
     if (_recorder == recorder) _recorder = null;
+    await _stopAmplitude();
+    if (_result == null) _envelope.clear();
     final states = _states;
     _states = null;
     try {
@@ -181,6 +224,8 @@ class _EvidenceAudioPageState extends State<EvidenceAudioPage>
   void _interrupt(String message) {
     if (_closing) return;
     ++_generation;
+    _envelope.clear();
+    unawaited(_stopAmplitude());
     _timer?.cancel();
     _watch.stop();
     _recording = false;
@@ -204,6 +249,7 @@ class _EvidenceAudioPageState extends State<EvidenceAudioPage>
     setState(() => _busy = true);
     final result = _result;
     _result = null;
+    _envelope.clear();
     // Remove its preview before releasing the owned file.
     setState(() {});
     await WidgetsBinding.instance.endOfFrame;
@@ -280,6 +326,8 @@ class _EvidenceAudioPageState extends State<EvidenceAudioPage>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     ++_generation;
+    _envelope.clear();
+    unawaited(_stopAmplitude());
     _closing = true;
     _timer?.cancel();
     _watch.stop();
@@ -353,7 +401,10 @@ class _EvidenceAudioPageState extends State<EvidenceAudioPage>
                         SizedBox(
                           height: 170,
                           width: double.infinity,
-                          child: EvidenceAudioWave(recorded: _recording),
+                          child: EvidenceAudioAmplitudeWave(
+                            levels: _envelope.levels,
+                            animate: _recording && !_busy,
+                          ),
                         ),
                         const SizedBox(height: 12),
                         Text(

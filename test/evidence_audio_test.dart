@@ -1,3 +1,5 @@
+import 'package:dwell/features/cases/widgets/creation/evidence/evidence_audio_amplitude_wave.dart';
+
 import 'dart:async';
 import 'dart:io';
 
@@ -25,6 +27,9 @@ final toggle = find.byKey(const ValueKey('audio-record-toggle'));
 
 class FakeRecorder implements EvidenceAudioRecorder {
   final stream = StreamController<RecordState>.broadcast();
+  final amplitudeStream = StreamController<Amplitude>.broadcast();
+  @override
+  Stream<Amplitude> get amplitudes => amplitudeStream.stream;
   bool permission = true;
   Object? startError, stopError;
   Completer<void>? startGate;
@@ -55,6 +60,7 @@ class FakeRecorder implements EvidenceAudioRecorder {
     disposed = true;
     disposals++;
     await stream.close();
+    await amplitudeStream.close();
   }
 }
 
@@ -619,6 +625,50 @@ void main() {
       await tester.pumpAndSettle();
       await tap(tester, find.byTooltip('Back'));
       expect(recorder.stops, 1);
+    },
+  );
+  testWidgets(
+    'Meter history grows from input, freezes after stop, clears on retake and cancel',
+    (tester) async {
+      final audio = await tester.runAsync(model);
+      final recorder = FakeRecorder();
+      await open(tester, recorder, saver: (_) async => audio!);
+      List<double> levels() => tester
+          .widget<EvidenceAudioAmplitudeWave>(
+            find.byType(EvidenceAudioAmplitudeWave),
+          )
+          .levels;
+      expect(levels(), isEmpty);
+      await tap(tester, toggle);
+      expect(recorder.amplitudeStream.hasListener, isTrue);
+      for (final db in [-60.0, -48.0, 0.0]) {
+        recorder.amplitudeStream.add(Amplitude(current: db, max: db));
+        await tester.pump(const Duration(milliseconds: 120));
+      }
+      expect(levels().length, 3);
+      final captured = List<double>.of(levels());
+      await tap(tester, toggle);
+      expect(recorder.amplitudeStream.hasListener, isFalse);
+      expect(levels(), captured);
+      expect(audio!.audioLevels, captured);
+      await tester.pump(const Duration(seconds: 2));
+      expect(levels(), captured);
+      await tap(tester, find.byKey(const ValueKey('audio-retake')));
+      expect(levels(), isEmpty);
+      expect(audio.audioLevels, isEmpty);
+      await tap(tester, find.byTooltip('Back'));
+      final cancelled = FakeRecorder();
+      await open(tester, cancelled);
+      await tap(tester, toggle);
+      cancelled.amplitudeStream.add(Amplitude(current: -10, max: -10));
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await tester.pumpAndSettle();
+      expect(levels(), isEmpty);
+      expect(cancelled.amplitudeStream.hasListener, isFalse);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+      await tap(tester, find.byTooltip('Back'));
     },
   );
   for (final size in [const Size(320, 568), const Size(393, 844)]) {
