@@ -1,7 +1,7 @@
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../models/case_sort_order.dart';
+import '../../models/case_sort_order.dart';
 
 class CaseSortMenu extends StatefulWidget {
   final CaseSortOrder selectedOrder;

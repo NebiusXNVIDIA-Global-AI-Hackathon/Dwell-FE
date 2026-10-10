@@ -2,7 +2,7 @@ import 'dart:ui' show PointerDeviceKind;
 
 import 'package:material_ui/material_ui.dart';
 
-import '../models/case_filters.dart';
+import '../../models/case_filters.dart';
 
 class CaseFilterTags extends StatefulWidget {
   final CaseFilters filters;
@@ -111,7 +111,7 @@ class _CaseFilterTagsState extends State<CaseFilterTags> {
                             Padding(
                               padding: const EdgeInsets.only(right: 8),
                               child: InputChip(
-                                key: ValueKey(tag.group.name + ':' + tag.value),
+                                key: ValueKey('${tag.group.name}:${tag.value}'),
                                 label: Text(tag.value),
                                 onDeleted: () =>
                                     widget.onRemove(tag.group, tag.value),

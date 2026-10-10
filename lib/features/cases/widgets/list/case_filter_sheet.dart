@@ -1,7 +1,7 @@
 import 'package:dwell/core/widgets/primary_action_button.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../models/case_filters.dart';
+import '../../models/case_filters.dart';
 
 class CaseFilterSheet extends StatefulWidget {
   final CaseFilters initialFilters;
