@@ -4,7 +4,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../../core/app_colors.dart';
 import '../../../core/theme.dart';
-import '../data/chat_shell_mock.dart';
+import '../data/chat_scenarios.dart';
 import '../models/chat_message.dart';
 import '../models/chat_thread.dart';
 import '../providers/chat_providers.dart';
@@ -39,13 +39,14 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     // 시나리오 주입 — intent 로 시작 지점 결정
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      ref.read(chatThreadsProvider.notifier).load(const [mockShellThread]);
+      final scenario = scenarioFor(widget.caseNo);
       ref
           .read(chatMessagesProvider(widget.caseNo).notifier)
-          .load(mockShellMessages);
+          .load(scenario.messages);
       ref
           .read(quickRepliesProvider(widget.caseNo).notifier)
-          .replace(mockShellQuickReplies);
+          .replace(scenario.quickReplies);
+      ref.read(chatThreadsProvider.notifier).markRead(widget.caseNo);
     });
   }
 
@@ -79,7 +80,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     await Future<void>.delayed(const Duration(milliseconds: 800));
     if (!mounted) return;
 
-    final turn = mockShellTurns[text];
+    final turn = scenarioFor(widget.caseNo).turns[text];
     messages.removeTyping();
 
     if (turn == null) {
@@ -139,7 +140,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         child: Column(
           children: [
             ChatAppBar(
-              title: thread?.caseTitle ?? 'New chat',
+              title: _titleFor(thread),
               subtitle: _subtitleFor(thread),
               badge: thread?.caseStage?.headerBadge,
               onBack: () => context.pop(),
@@ -175,8 +176,16 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     );
   }
 
+  /// 일반 채팅은 첫 사용자 메시지가 제목이 되므로 그때까지 New chat
+  String _titleFor(ChatThread? thread) {
+    if (thread == null) return 'New chat';
+    return thread.kind == ChatKind.general ? thread.title : thread.caseTitle!;
+  }
+
   String _subtitleFor(ChatThread? thread) {
-    if (thread == null) return 'General question';
+    if (thread == null || thread.kind == ChatKind.general) {
+      return 'General question';
+    }
     final location = thread.caseLocation;
     final caseNo = thread.caseNo ?? widget.caseNo;
     return location == null ? 'Case #$caseNo' : 'Case #$caseNo · $location';
