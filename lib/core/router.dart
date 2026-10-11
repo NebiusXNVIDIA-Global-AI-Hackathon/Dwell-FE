@@ -6,6 +6,7 @@ import '../features/assistant/assistant_page.dart';
 import '../features/home/home_page.dart';
 import '../features/my_page/my_page.dart';
 import '../features/my_place/my_place_page.dart';
+import '../features/assistant/pages/chat_page.dart';
 import '../features/cases/pages/cases_page.dart';
 import '../features/splash/splash_page.dart';
 import '../features/cases/pages/case_creation_page.dart';
@@ -27,6 +28,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/cases/new',
         name: 'case-creation',
         builder: (context, state) => const CaseCreationPage(),
+      ),
+      // 케이스 채팅 — intent 로 시작 시나리오 결정
+      GoRoute(
+        path: '/assistant/chat/:caseNo',
+        name: 'assistant-chat',
+        builder: (context, state) => ChatPage(
+          caseNo: state.pathParameters['caseNo']!,
+          intent: state.uri.queryParameters['intent'],
+        ),
       ),
 
       // 공통 레이아웃과 하단바를 사용하는 페이지

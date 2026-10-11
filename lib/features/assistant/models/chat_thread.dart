@@ -17,7 +17,7 @@ class ChatThread {
   final String timeLabel;
   final bool hasUnread;
 
-  // caseChat 전용 — 타일은 썸네일만 쓰고 나머지는 채팅 헤더용
+  // caseChat 전용 — 썸네일은 타일, 나머지는 채팅 헤더
   final String? caseNo;
   final String? caseTitle;
   final String? caseLocation;
