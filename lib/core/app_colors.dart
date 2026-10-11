@@ -6,9 +6,13 @@ abstract final class AppColors {
   static const navy = Color(0xFF243B53); // 헤더 배경 · 주 버튼 · 활성 탭 (= theme seed)
   static const link = Color(0xFF0065F3); // 법 조항 출처 링크
   static const unreadDot = Color(0xFFF58A00); // 채팅 미읽음 점
+  static const danger = Color(0xFFFF3D3D); // 나가기 등 파괴적 동작
 
   // 면
-  static const bg = Color(0xFFF8F8F8); // 페이지 배경 (= scaffoldBackgroundColor)
+  static const bg = Color(0xFFF8F8F8); // 페이지 배경
+  static const headerSubtle = Color(
+    0xFFF5F5F5,
+  ); // 네이비 헤더 부제 (= scaffoldBackgroundColor)
   static const surface = Color(0xFFFFFFFF); // 카드 · 타일 · 시트
 
   // 말풍선
@@ -30,4 +34,6 @@ abstract final class AppColors {
   static const systemPill = Color(0xFFE4E8EC); // System pill 배경
   // 상태 배지 배경은 divider 와 같은 값 — 별도 상수 없음
   static const iconGray = Color(0xFF8F8F8F); // 첨부 + 버튼
+  static const iconFaint = Color(0xFFD3D1D1); // 섹션 옆 안내 아이콘
+  static const scrim = Color(0x331A1A1A); // 모달 · 다이얼로그 뒤 배경
 }
