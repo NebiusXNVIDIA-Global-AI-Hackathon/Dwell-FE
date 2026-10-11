@@ -16,9 +16,6 @@ class ChatMessage {
   /// 버블 안 흰 카드 — 통지문·답장 초안
   final String? draftText;
 
-  /// user 버블 아래 "선택함" 라벨
-  final bool chosen;
-
   /// "Sent via Messages · 3:12 PM"
   final String? sentVia;
 
@@ -28,17 +25,15 @@ class ChatMessage {
     this.imagePath,
     this.card,
     this.draftText,
-    this.chosen = false,
     this.sentVia,
   });
 
   const ChatMessage.deaver(this.text, {this.card, this.draftText})
     : type = MessageType.deaver,
       imagePath = null,
-      chosen = false,
       sentVia = null;
 
-  const ChatMessage.user(this.text, {this.chosen = false, this.sentVia})
+  const ChatMessage.user(this.text, {this.sentVia})
     : type = MessageType.user,
       imagePath = null,
       card = null,
@@ -50,14 +45,12 @@ class ChatMessage {
       imagePath = null,
       card = null,
       draftText = null,
-      chosen = false,
       sentVia = null;
 
   const ChatMessage.image(this.imagePath, {this.text = ''})
     : type = MessageType.image,
       card = null,
       draftText = null,
-      chosen = false,
       sentVia = null;
 
   const ChatMessage.typing()
@@ -66,6 +59,5 @@ class ChatMessage {
       imagePath = null,
       card = null,
       draftText = null,
-      chosen = false,
       sentVia = null;
 }
