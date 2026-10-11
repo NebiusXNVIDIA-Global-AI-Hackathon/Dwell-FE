@@ -1,6 +1,7 @@
 // 전 화면 공통 데모 값 — 주소가 화면마다 다르게 박히는 사고 방지
 
 const demoUserName = 'Seohu Jang';
+const demoUserFirstName = 'Seohu';
 const demoUserInitials = 'SJ';
 const demoAddress = '254 W 107th St, Apt 4B, New York, NY 10025';
 const demoLandlordName = 'John Smith';
