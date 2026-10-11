@@ -1,8 +1,6 @@
 import '../../cases/models/case_model.dart';
 
-/// 케이스 세부 진행 단계 21종
-///
-/// 팀원 `CaseStatus`(목록 탭 3종)와 별개 — [toListStatus] 로 파생
+/// 케이스 세부 진행 단계 — 목록 탭용 `CaseStatus` 와 별개
 enum CaseStage {
   logged,
   notifiedLandlord,
@@ -75,7 +73,7 @@ enum CaseStage {
   };
 }
 
-/// 목록 탭 분류 파생 — 팀원 `CaseStatus` 는 수정하지 않음
+/// 목록 탭 분류 파생
 CaseStatus toListStatus(CaseStage stage) => switch (stage) {
   CaseStage.logged => CaseStatus.logged,
   CaseStage.resolved => CaseStatus.resolved,

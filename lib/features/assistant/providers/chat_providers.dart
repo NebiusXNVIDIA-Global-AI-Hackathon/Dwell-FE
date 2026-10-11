@@ -4,7 +4,7 @@ import '../models/case_stage.dart';
 import '../models/chat_message.dart';
 import '../models/chat_thread.dart';
 
-/// 채팅 목록 — 목업 연결은 01 채팅 목록에서
+/// 채팅 목록
 final chatThreadsProvider =
     NotifierProvider<ChatThreadsNotifier, List<ChatThread>>(
       ChatThreadsNotifier.new,
@@ -64,6 +64,14 @@ class ChatMessagesNotifier extends Notifier<List<ChatMessage>> {
   void load(List<ChatMessage> messages) => state = messages;
 
   void append(List<ChatMessage> messages) => state = [...state, ...messages];
+
+  void add(ChatMessage message) => state = [...state, message];
+
+  /// 응답 도착 시 타이핑 버블 제거
+  void removeTyping() => state = [
+    for (final message in state)
+      if (message.type != MessageType.typing) message,
+  ];
 }
 
 /// 현재 떠 있는 퀵리플라이
