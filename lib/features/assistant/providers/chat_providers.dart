@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../data/bring_in_case_mock.dart';
+import '../data/chat_list_mock.dart';
 import '../models/case_stage.dart';
 import '../models/chat_message.dart';
 import '../models/chat_thread.dart';
@@ -12,9 +14,10 @@ final chatThreadsProvider =
 
 class ChatThreadsNotifier extends Notifier<List<ChatThread>> {
   @override
-  List<ChatThread> build() => const [];
-
-  void load(List<ChatThread> threads) => state = threads;
+  List<ChatThread> build() => const [
+    ...mockCaseChatThreads,
+    ...mockGeneralChatThreads,
+  ];
 
   /// Leave 다이얼로그
   void remove(String id) => state = [
@@ -30,6 +33,28 @@ class ChatThreadsNotifier extends Notifier<List<ChatThread>> {
           thread.copyWith(caseStage: stage)
         else
           thread,
+    ];
+  }
+
+  /// 새 일반 채팅 — 첫 메시지가 생기면 목록 맨 위에
+  void addGeneral(ChatThread thread) => state = [thread, ...state];
+
+  /// Bring in a case — 고른 케이스로 채팅 시작
+  void openCaseChat(SelectableCase item) {
+    if (state.any((thread) => thread.caseNo == item.caseNo)) return;
+    state = [
+      ChatThread(
+        id: item.caseNo,
+        kind: ChatKind.caseChat,
+        title: '${item.title} \u00B7 ${item.caseNo}',
+        preview: 'Deaver: Ready when you are.',
+        timeLabel: 'now',
+        caseNo: item.caseNo,
+        caseTitle: item.title,
+        caseLocation: item.location,
+        caseStage: item.stage,
+      ),
+      ...state,
     ];
   }
 
@@ -92,3 +117,16 @@ class QuickRepliesNotifier extends Notifier<List<String>> {
 
   void clear() => state = const [];
 }
+
+/// Bring in a case — 채팅이 아직 없는 케이스만
+final selectableCasesProvider = Provider<List<SelectableCase>>((ref) {
+  final taken = {
+    for (final thread in ref.watch(chatThreadsProvider))
+      if (thread.caseNo != null) thread.caseNo!,
+  };
+
+  return [
+    for (final item in mockSelectableCases)
+      if (!taken.contains(item.caseNo)) item,
+  ];
+});
