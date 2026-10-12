@@ -2,6 +2,7 @@ import 'package:dwell/features/cases/models/evidence_model.dart';
 import 'package:dwell/features/cases/pages/evidence/evidence_audio_page.dart';
 import 'package:dwell/features/cases/pages/evidence/evidence_video_page.dart';
 import 'package:dwell/features/cases/services/evidence_library.dart';
+import 'package:dwell/features/cases/services/evidence_documents.dart';
 import 'package:dwell/app.dart';
 import 'package:dwell/features/cases/pages/evidence/evidence_camera_page.dart';
 import 'package:dwell/core/router.dart';
@@ -57,6 +58,7 @@ class CreationHarness {
     bool direct = false,
     EvidenceCameraLauncher? capturePhoto,
     EvidenceLibraryPicker? pickLibrary,
+    EvidenceDocumentPicker? pickDocuments,
     EvidenceVideoLauncher? recordVideo,
     Future<EvidenceModel?> Function(BuildContext)? recordAudio,
   }) async {
@@ -71,6 +73,9 @@ class CreationHarness {
     // Camera integration tests supply the real page with a fake camera.
     final container = ProviderContainer(
       overrides: [
+        evidenceDocumentPickerProvider.overrideWithValue(
+          pickDocuments ?? (_) async => const EvidenceDocumentResult([]),
+        ),
         evidenceAudioLauncherProvider.overrideWithValue(
           recordAudio ?? (_) async => null,
         ),

@@ -16,6 +16,20 @@ void releaseEvidenceBlob(XFile file) {
 XFile createEvidenceBlob(Uint8List bytes, String mime, String name) =>
     XFile.fromData(bytes, mimeType: mime, name: name);
 
+Future<({XFile file, Future<void> Function() dispose})> storeEvidenceDocument(
+  Uint8List bytes,
+  String mime,
+  String name, {
+  Object? storageDirectory,
+}) async {
+  final file = createEvidenceBlob(bytes, mime, name);
+  return (file: file, dispose: () async => releaseEvidenceBlob(file));
+}
+
+Future<void> releasePickedDocument(Uri uri) async {
+  if (uri.scheme == 'blob') web.URL.revokeObjectURL(uri.toString());
+}
+
 /// Probe the browser decoder, not the UI timer. Chromium streaming WebM can
 /// omit Duration; seeking to the end makes the decoder discover its actual end.
 Future<XFile> prepareEvidenceMedia(XFile file, {required bool audio}) async {

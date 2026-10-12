@@ -3,6 +3,7 @@ import 'package:dwell/features/cases/widgets/creation/steps/evidence_step.dart';
 import 'package:dwell/features/cases/widgets/creation/dialogs/case_exit_dialog.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dwell/features/cases/controllers/case_creation_controller.dart';
+import 'package:dwell/features/cases/pages/evidence/evidence_documents_page.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'case_creation_layout_test.dart' show collectLayoutProblems;
@@ -83,6 +84,10 @@ void main() {
         await gesture.up();
         await tester.pumpAndSettle();
         expect(sheet, findsNothing);
+        if (option.$1 == EvidenceSource.document) {
+          expect(find.byType(EvidenceDocumentsPage), findsOneWidget);
+          await h.tap(find.byTooltip('Back'));
+        }
         h.expectStep(5);
         expect(find.byType(EvidenceStep), findsOneWidget);
         h.expectNext(false);
@@ -183,6 +188,15 @@ void main() {
           expect(find.text('Upload Documents').hitTestable(), findsOneWidget);
           await h.tap(find.byKey(const ValueKey(EvidenceSource.document)));
           expect(sheet, findsNothing);
+          expect(find.byType(EvidenceDocumentsPage), findsOneWidget);
+          collectLayoutProblems(
+            tester,
+            find.byType(EvidenceDocumentsPage),
+            'document upload',
+            problems,
+          );
+          expect(problems, isEmpty, reason: problems.join());
+          await h.tap(find.byTooltip('Back'));
           expect(tester.getRect(h.nextButton), buttonRect);
           h.expectNext(false);
           expect(tester.takeException(), isNull);

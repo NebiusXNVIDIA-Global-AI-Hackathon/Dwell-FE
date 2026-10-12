@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../controllers/evidence_controller.dart';
 import '../services/evidence_library.dart';
+import '../services/evidence_documents.dart';
+import 'evidence/evidence_documents_page.dart';
 import 'evidence/evidence_camera_page.dart';
 import 'evidence/evidence_video_page.dart';
 import 'evidence/evidence_audio_page.dart';
@@ -55,6 +57,7 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage> {
   bool _isEvidenceGuideOpen = false;
   bool _isEvidenceSheetOpen = false;
   bool _isLibraryPickerOpen = false;
+  bool _isDocumentPickerOpen = false;
   bool _isVideoPageOpen = false;
   bool _isAudioPageOpen = false;
   bool _isSafetyNoticeOpen = false;
@@ -197,6 +200,7 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage> {
   Future<void> _showEvidenceSheet() async {
     if (_isEvidenceSheetOpen ||
         _isLibraryPickerOpen ||
+        _isDocumentPickerOpen ||
         _isVideoPageOpen ||
         _isAudioPageOpen ||
         _isExitNoticeOpen ||
@@ -236,6 +240,8 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage> {
         await _recordVideo();
       } else if (source == EvidenceSource.audio) {
         await _recordAudio();
+      } else if (source == EvidenceSource.document) {
+        await _pickDocuments();
       }
     } finally {
       if (mounted) setState(() => _isEvidenceSheetOpen = false);
@@ -259,6 +265,39 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage> {
       }
     } finally {
       _isAudioPageOpen = false;
+    }
+  }
+
+  Future<void> _pickDocuments() async {
+    if (_isDocumentPickerOpen || _allowLeave) return;
+    _isDocumentPickerOpen = true;
+    try {
+      final result = await Navigator.of(context).push<List<EvidenceModel>>(
+        MaterialPageRoute(
+          builder: (_) => EvidenceDocumentsPage(
+            existing: _evidence.items
+                .map((item) => item.documentFingerprint)
+                .whereType<String>()
+                .toSet(),
+          ),
+        ),
+      );
+      if (result == null) return;
+      if (!mounted || _allowLeave) {
+        for (final item in result) {
+          await item.dispose();
+        }
+        return;
+      }
+      for (final item in result) {
+        _evidence.add(item);
+      }
+    } catch (error) {
+      if (mounted && !_allowLeave) {
+        _showLibraryMessage(evidenceDocumentPickerError(error));
+      }
+    } finally {
+      _isDocumentPickerOpen = false;
     }
   }
 

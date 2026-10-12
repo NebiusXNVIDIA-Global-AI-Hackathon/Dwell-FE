@@ -7,11 +7,14 @@ import 'package:camera/camera.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:crypto/crypto.dart';
+
+import '../services/evidence_document_format.dart';
 
 import '../services/evidence_media_platform.dart';
 import '../services/evidence_media_format.dart';
 
-enum EvidenceType { photo, video, audio }
+enum EvidenceType { photo, video, audio, document }
 
 /// Session evidence: photos share bytes; recordings own a private cache file.
 class EvidenceModel {
@@ -24,6 +27,11 @@ class EvidenceModel {
     this.type = EvidenceType.photo,
     this.duration,
     this._videoDirectory,
+    this.documentSize,
+    this.documentFingerprint,
+    this._documentName,
+    this._documentCleanup,
+    this._documentPreviewBytes,
   });
   static int _sequence = 0;
   final String id;
@@ -33,6 +41,12 @@ class EvidenceModel {
   final DateTime addedAt;
   final EvidenceType type;
   final Duration? duration;
+  final int? documentSize;
+  final String? documentFingerprint;
+  final String? _documentName;
+  Future<void> Function()? _documentCleanup;
+  Uint8List? _documentPreviewBytes;
+  Uint8List? get documentPreviewBytes => _documentPreviewBytes;
   List<double> _audioLevels = const [];
   List<double> get audioLevels => _audioLevels;
   List<Duration> _audioLevelTimes = const [];
@@ -114,7 +128,57 @@ class EvidenceModel {
 
   bool get isDisposed => _disposing != null;
 
-  String get fileName => file.name;
+  String get fileName => _documentName ?? file.name;
+
+  static Future<EvidenceModel> fromDocument(
+    Uint8List data, {
+    required String name,
+    Directory? storageDirectory,
+  }) async {
+    final safeName = safeEvidenceDocumentName(name);
+    final mime = validateEvidenceDocument(data, safeName);
+    Uint8List? preview;
+    if (mime.startsWith('image/')) {
+      final codec = await ui.instantiateImageCodec(
+        data,
+        targetWidth: 256,
+        allowUpscaling: false,
+      );
+      try {
+        final frame = await codec.getNextFrame();
+        try {
+          preview = (await frame.image.toByteData(
+            format: ui.ImageByteFormat.png,
+          ))?.buffer.asUint8List();
+        } finally {
+          frame.image.dispose();
+        }
+      } finally {
+        codec.dispose();
+      }
+    }
+    final fingerprint = sha256.convert(data).toString();
+    final stored = await storeEvidenceDocument(
+      data,
+      mime,
+      safeName,
+      storageDirectory: storageDirectory,
+    );
+    final now = DateTime.now();
+    return EvidenceModel._(
+      id: '${now.microsecondsSinceEpoch}-${++_sequence}',
+      file: stored.file,
+      bytes: Uint8List(0),
+      mimeType: mime,
+      addedAt: now,
+      type: EvidenceType.document,
+      documentSize: data.length,
+      documentFingerprint: fingerprint,
+      documentName: safeName,
+      documentCleanup: stored.dispose,
+      documentPreviewBytes: preview,
+    );
+  }
 
   static Future<EvidenceModel> fromVideo(
     XFile file, {
@@ -169,6 +233,11 @@ class EvidenceModel {
     _audioLevels = const [];
     _audioLevelTimes = const [];
     audioCaptureDuration = null;
+    final documentPreview = _documentPreviewBytes;
+    _documentPreviewBytes = null;
+    if (documentPreview != null) {
+      unawaited(MemoryImage(documentPreview).evict());
+    }
     final bytes = _thumbnailBytes;
     _thumbnailBytes = null;
     _thumbnail = null;
@@ -185,7 +254,12 @@ class EvidenceModel {
       await _readersReleased!.future;
     }
     final directory = _videoDirectory;
-    if (kIsWeb && type != EvidenceType.photo) releaseEvidenceBlob(file);
+    final cleanup = _documentCleanup;
+    _documentCleanup = null;
+    if (cleanup != null) await cleanup();
+    if (kIsWeb && (type == EvidenceType.video || type == EvidenceType.audio)) {
+      releaseEvidenceBlob(file);
+    }
     if (directory != null && await directory.exists()) {
       await directory.delete(recursive: true);
     }

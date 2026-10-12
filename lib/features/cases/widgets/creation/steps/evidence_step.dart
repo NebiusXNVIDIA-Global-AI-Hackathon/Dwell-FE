@@ -6,6 +6,7 @@ import '../../../models/evidence_model.dart';
 import '../evidence/evidence_video_preview.dart';
 import '../evidence/evidence_audio_preview.dart';
 import '../evidence/evidence_video_thumbnail.dart';
+import '../evidence/evidence_document_preview.dart';
 
 class EvidenceStep extends StatelessWidget {
   const EvidenceStep({
@@ -132,6 +133,8 @@ class EvidenceStep extends StatelessWidget {
                         child: EvidenceAudioWave(),
                       ),
                     )
+                  : item.type == EvidenceType.document
+                  ? EvidenceDocumentThumbnail(evidence: item)
                   : Image.memory(
                       item.bytes,
                       fit: BoxFit.cover,
@@ -178,6 +181,11 @@ class EvidenceStep extends StatelessWidget {
                         key: ValueKey(selected.id),
                         evidence: selected,
                         active: !isSheetOpen,
+                      )
+                    : selected.type == EvidenceType.document
+                    ? EvidenceDocumentPreview(
+                        key: ValueKey(selected.id),
+                        evidence: selected,
                       )
                     : AspectRatio(
                         aspectRatio: 2.06,

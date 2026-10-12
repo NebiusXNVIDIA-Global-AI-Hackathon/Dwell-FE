@@ -14,7 +14,7 @@ class EvidenceController extends ChangeNotifier {
     if (_items.any((value) => value.id == item.id)) return;
     _items.add(item);
     _selectedId = item.id;
-    if (item.type != EvidenceType.photo) {
+    if (item.type == EvidenceType.audio || item.type == EvidenceType.video) {
       debugPrint(
         '[${item.type == EvidenceType.audio ? 'RecordAudio' : 'RecordVideo'}] Evidence added id=${item.id} mime=${item.mimeType}',
       );
