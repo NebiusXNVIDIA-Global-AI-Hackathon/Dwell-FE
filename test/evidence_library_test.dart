@@ -143,7 +143,7 @@ void main() {
       await h.tap(find.byTooltip('Delete photo 1'));
       expect(state.items, orderedEquals(photos.skip(1)));
       h.expectStep(5);
-      h.expectNext(false);
+      h.expectNext(true);
       expect(tester.takeException(), isNull);
     },
   );

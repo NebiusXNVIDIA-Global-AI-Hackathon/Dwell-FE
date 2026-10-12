@@ -462,7 +462,7 @@ void main() {
       expect(find.text('00:00 / 00:02'), findsOneWidget);
       await h.tap(find.byTooltip('Delete audio 3'));
       expect(controller.items, [photo, video]);
-      h.expectNext(false);
+      h.expectNext(true);
       expect(player.pauses, greaterThanOrEqualTo(pauses));
       await tester.pumpWidget(const SizedBox());
       for (var i = 0; i < 6; i++) {
@@ -614,7 +614,7 @@ void main() {
         tester.widget<EvidenceStep>(find.byType(EvidenceStep)).evidence!.items,
         [audio],
       );
-      h.expectNext(false);
+      h.expectNext(true);
       await tester.pumpWidget(const SizedBox());
       for (var i = 0; i < 6; i++) {
         await tester.runAsync(

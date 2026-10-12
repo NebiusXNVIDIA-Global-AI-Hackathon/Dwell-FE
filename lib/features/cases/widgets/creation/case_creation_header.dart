@@ -9,6 +9,7 @@ class CaseCreationHeader extends StatelessWidget {
     required this.onBack,
     this.totalSteps = 7,
     this.showStepDetails = true,
+    this.stackStepDetails = false,
   }) : assert(totalSteps > 0),
        assert(currentStep >= 1 && currentStep <= totalSteps);
 
@@ -16,6 +17,7 @@ class CaseCreationHeader extends StatelessWidget {
   final int currentStep;
   final int totalSteps;
   final bool showStepDetails;
+  final bool stackStepDetails;
   final VoidCallback onBack;
 
   @override
@@ -60,10 +62,11 @@ class CaseCreationHeader extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (showStepDetails) const SizedBox(width: 8),
+                if (showStepDetails && !stackStepDetails)
+                  const SizedBox(width: 8),
 
                 // 현재 단계 / 전체 단계
-                if (showStepDetails)
+                if (showStepDetails && !stackStepDetails)
                   Text(
                     'steps $currentStep of $totalSteps',
                     style: const TextStyle(
@@ -74,6 +77,20 @@ class CaseCreationHeader extends StatelessWidget {
                   ),
               ],
             ),
+            if (showStepDetails && stackStepDetails) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  'steps $currentStep of $totalSteps',
+                  style: const TextStyle(
+                    color: Color(0xFF5E5E5E),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
             if (!showStepDetails) const SizedBox(height: 10),
             if (showStepDetails) const SizedBox(height: 20),
 

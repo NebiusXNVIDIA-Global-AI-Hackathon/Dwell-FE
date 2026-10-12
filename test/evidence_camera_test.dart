@@ -325,7 +325,7 @@ void main() {
         expect(tester.widget<FilledButton>(shutter).onPressed, isNotNull);
         await completeCapture(tester);
         h.expectStep(5);
-        h.expectNext(false);
+        h.expectNext(true);
         final evidence = tester
             .widget<EvidenceStep>(find.byType(EvidenceStep))
             .evidence!;

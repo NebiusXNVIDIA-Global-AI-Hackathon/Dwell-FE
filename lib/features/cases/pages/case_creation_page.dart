@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../controllers/evidence_controller.dart';
+import '../controllers/mock_evidence_check_controller.dart';
 import '../services/evidence_library.dart';
 import '../services/evidence_documents.dart';
 import 'evidence/evidence_documents_page.dart';
@@ -17,6 +18,7 @@ import '../controllers/case_creation_controller.dart';
 import 'evidence_guide_page.dart';
 import '../widgets/creation/steps/evidence_step.dart';
 import '../widgets/creation/evidence/evidence_add_sheet.dart';
+import '../widgets/creation/evidence/evidence_check_button.dart';
 import '../widgets/creation/steps/affected_area_step.dart';
 import '../widgets/creation/case_creation_bottom.dart';
 import '../widgets/creation/case_creation_header.dart';
@@ -33,12 +35,27 @@ class CaseCreationPage extends ConsumerStatefulWidget {
   ConsumerState<CaseCreationPage> createState() => _CaseCreationPageState();
 }
 
-class _CaseCreationPageState extends ConsumerState<CaseCreationPage> {
+class _CaseCreationPageState extends ConsumerState<CaseCreationPage>
+    with WidgetsBindingObserver {
   final _controller = CaseCreationController();
   final _evidence = EvidenceController();
+  late final MockEvidenceCheckController _mockCheck;
+  @override
+  void initState() {
+    super.initState();
+    _mockCheck = MockEvidenceCheckController(_evidence);
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) _mockCheck.cancelChecking();
+  }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _mockCheck.dispose();
     for (final item in _evidence.items) {
       if (item.type == EvidenceType.photo) MemoryImage(item.bytes).evict();
     }
@@ -182,6 +199,7 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage> {
     setState(() {
       _allowLeave = true;
     });
+    _mockCheck.cancelChecking();
 
     // 종료 허용 상태가 화면에 반영된 뒤 이동
     await WidgetsBinding.instance.endOfFrame;
@@ -208,6 +226,7 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage> {
       return;
     }
     setState(() => _isEvidenceSheetOpen = true);
+    _mockCheck.cancelChecking();
     try {
       final source = await showModalBottomSheet<EvidenceSource>(
         context: context,
@@ -355,6 +374,26 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage> {
   }
 
   Future<void> _handleNext() async {
+    if (_currentStep == 5) {
+      if (_allowLeave ||
+          _isExitNoticeOpen ||
+          _isEvidenceSheetOpen ||
+          _isDocumentPickerOpen ||
+          _isVideoPageOpen ||
+          _isAudioPageOpen ||
+          ModalRoute.of(context)?.isCurrent != true ||
+          !_mockCheck.buttonEnabled) {
+        return;
+      }
+      if (_mockCheck.status == MockEvidenceCheckStatus.completed) {
+        _showLibraryMessage(
+          'Coming soon: the next step is not available yet. This check is a UI demo.',
+        );
+      } else {
+        _mockCheck.start();
+      }
+      return;
+    }
     if (!_canGoNext ||
         _isEvidenceGuideOpen ||
         _isSafetyNoticeOpen ||
@@ -468,6 +507,7 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage> {
           onAdd: _showEvidenceSheet,
           isSheetOpen: _isEvidenceSheetOpen,
           evidence: _evidence,
+          mockCheck: _mockCheck,
         );
       default:
         return const SizedBox.shrink();
@@ -498,6 +538,10 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage> {
                   title: _stepTitle,
                   currentStep: _currentStep,
                   totalSteps: CaseCreationController.totalSteps,
+                  stackStepDetails:
+                      _currentStep == 5 &&
+                      MediaQuery.textScalerOf(context).scale(24) > 32 &&
+                      MediaQuery.sizeOf(context).width < 400,
                   onBack: _handleBack,
                 ),
                 const SizedBox(height: 20),
@@ -507,11 +551,18 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage> {
                 const SizedBox(height: 16),
 
                 // 하단 Next 버튼
-                CaseCreationBottom(
-                  enabled: _canGoNext,
-                  onNext: _handleNext,
-                  label: _currentStep == 5 ? 'Check' : 'Next',
-                ),
+                if (_currentStep == 5)
+                  EvidenceCheckButton(
+                    controller: _mockCheck,
+                    onPressed: _handleNext,
+                    active: !_allowLeave,
+                  )
+                else
+                  CaseCreationBottom(
+                    enabled: _canGoNext,
+                    onNext: _handleNext,
+                    label: _currentStep == 5 ? 'Check' : 'Next',
+                  ),
               ],
             ),
           ),

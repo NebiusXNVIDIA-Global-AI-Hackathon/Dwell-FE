@@ -168,7 +168,7 @@ void main() {
         find.byKey(const ValueKey('evidence-document-name')),
         findsOneWidget,
       );
-      h.expectNext(false);
+      h.expectNext(true);
       await h.tap(find.byKey(ValueKey(photo.id)));
       expect(find.byType(EvidenceDocumentPreview), findsNothing);
       await h.tap(find.byKey(ValueKey(second!.id)));
@@ -227,7 +227,7 @@ void main() {
       expect(title.overflow, TextOverflow.ellipsis);
       await h.tap(find.byKey(const ValueKey('document-upload')));
       expect(tester.takeException(), isNull);
-      h.expectNext(false);
+      h.expectNext(true);
     });
   }
 }

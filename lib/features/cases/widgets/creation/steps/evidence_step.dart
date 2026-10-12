@@ -7,6 +7,8 @@ import '../evidence/evidence_video_preview.dart';
 import '../evidence/evidence_audio_preview.dart';
 import '../evidence/evidence_video_thumbnail.dart';
 import '../evidence/evidence_document_preview.dart';
+import '../evidence/evidence_checklist.dart';
+import '../../../controllers/mock_evidence_check_controller.dart';
 
 class EvidenceStep extends StatelessWidget {
   const EvidenceStep({
@@ -14,10 +16,12 @@ class EvidenceStep extends StatelessWidget {
     required this.onAdd,
     this.isSheetOpen = false,
     this.evidence,
+    this.mockCheck,
   });
   final VoidCallback onAdd;
   final bool isSheetOpen;
   final EvidenceController? evidence;
+  final MockEvidenceCheckController? mockCheck;
 
   @override
   Widget build(BuildContext context) => evidence == null
@@ -225,6 +229,9 @@ class EvidenceStep extends StatelessWidget {
           ),
         ] else
           _add(size: 96),
+        const SizedBox(height: 24),
+        EvidenceChecklist(controller: mockCheck),
+        const SizedBox(height: 16),
       ],
     ),
   );
