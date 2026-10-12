@@ -229,9 +229,11 @@ class EvidenceStep extends StatelessWidget {
           ),
         ] else
           _add(size: 96),
-        const SizedBox(height: 24),
-        EvidenceChecklist(controller: mockCheck),
-        const SizedBox(height: 16),
+        if (evidence?.items.isNotEmpty ?? false) ...[
+          const SizedBox(height: 24),
+          EvidenceChecklist(controller: mockCheck),
+          const SizedBox(height: 16),
+        ],
       ],
     ),
   );

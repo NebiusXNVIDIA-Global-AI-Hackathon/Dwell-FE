@@ -164,8 +164,8 @@ void main() {
       await tester.tap(find.byTooltip('Delete selected evidence'));
       await tester.pumpAndSettle();
       expect(state.items, isEmpty);
-      expect(find.text('Damage is visible'), findsOneWidget);
-      expect(find.byKey(const ValueKey('evidence-check-idle-0')), findsOneWidget);
+      expect(find.text('Damage is visible'), findsNothing);
+      expect(find.byKey(const ValueKey('evidence-check-idle-0')), findsNothing);
       expect(tester.takeException(), isNull);
       await clear(tester, state);
     },

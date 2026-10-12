@@ -39,6 +39,73 @@ Future<CreationHarness> checkPage(
 void main() {
   setUpAll(loadCreationTestFonts);
   testWidgets(
+    'Production mode never runs the mock or marks evidence completed',
+    (tester) async {
+      final evidence = EvidenceController();
+      final demo = MockEvidenceCheckController(evidence, demoEnabled: false);
+      evidence.add(await checkPhoto(tester));
+      expect(demo.buttonEnabled, false);
+      demo.start();
+      await tester.pump(const Duration(seconds: 4));
+      expect(demo.status, MockEvidenceCheckStatus.idle);
+      expect(demo.completedCount, 0);
+      demo.dispose();
+      evidence.dispose();
+    },
+  );
+  testWidgets(
+    'Checklist appears once with evidence and disappears after deleting all',
+    (tester) async {
+      final h = await checkPage(tester);
+      final step = tester.widget<EvidenceStep>(find.byType(EvidenceStep));
+      void expectChecklist(bool visible) {
+        for (var i = 0; i < evidenceCheckLabels.length; i++) {
+          expect(
+            find.text(evidenceCheckLabels[i]),
+            visible ? findsOneWidget : findsNothing,
+          );
+          expect(
+            find.byKey(ValueKey('evidence-check-idle-$i')),
+            visible ? findsOneWidget : findsNothing,
+          );
+        }
+        expect(find.text('Demo check · No AI analysis'), findsNothing);
+      }
+
+      expectChecklist(false);
+      h.expectNext(false);
+      final a = await checkPhoto(tester), b = await checkPhoto(tester);
+      step.evidence!.add(a);
+      await tester.pumpAndSettle();
+      expectChecklist(true);
+      h.expectNext(true);
+      step.evidence!.add(b);
+      await tester.pumpAndSettle();
+      expectChecklist(true);
+      await tester.tap(h.nextButton);
+      await tester.pump(mockEvidenceCheckInterval);
+      expect(step.mockCheck!.completedCount, 1);
+      step.evidence!.remove(a.id);
+      await tester.pumpAndSettle();
+      expectChecklist(true);
+      expect(step.mockCheck!.status, MockEvidenceCheckStatus.idle);
+      step.mockCheck!.start();
+      await tester.pump();
+      step.evidence!.remove(b.id);
+      await tester.pumpAndSettle();
+      expectChecklist(false);
+      h.expectNext(false);
+      await tester.pump(const Duration(seconds: 4));
+      expect(step.mockCheck!.completedCount, 0);
+      expect(find.byKey(const ValueKey('evidence-add')), findsOneWidget);
+      step.evidence!.add(await checkPhoto(tester));
+      await tester.pumpAndSettle();
+      expectChecklist(true);
+      h.expectNext(true);
+      expect(tester.takeException(), isNull);
+    },
+  );
+  testWidgets(
     'Demo runs in order, blocks duplicate calls and never mutates evidence',
     (tester) async {
       final evidence = EvidenceController();
@@ -127,7 +194,7 @@ void main() {
       step.evidence!.add(photo);
       await tester.pumpAndSettle();
       h.expectNext(true);
-      expect(find.text('Demo check · No AI analysis'), findsOneWidget);
+      expect(find.text('Demo check · No AI analysis'), findsNothing);
       await tester.ensureVisible(
         find.byKey(const ValueKey('evidence-check-item-0')),
       );

@@ -6,6 +6,10 @@ import 'evidence_controller.dart';
 
 const mockEvidenceCheckInterval = Duration(milliseconds: 700);
 const evidenceCheckTransitionDuration = Duration(milliseconds: 200);
+// Release/profile builds cannot simulate successful checks unless the build is
+// explicitly configured for a demonstration. Never enable this in production.
+const mockEvidenceCheckEnabled =
+    kDebugMode || bool.fromEnvironment('DWELL_ENABLE_MOCK_EVIDENCE_CHECK');
 const evidenceCheckLabels = [
   'Damage is visible',
   'Every item is clear and steady',
@@ -20,12 +24,14 @@ class MockEvidenceCheckController extends ChangeNotifier {
   MockEvidenceCheckController(
     this.evidence, {
     this.interval = mockEvidenceCheckInterval,
+    this.demoEnabled = mockEvidenceCheckEnabled,
   }) {
     _ids = evidence.items.map((item) => item.id).toList();
     evidence.addListener(_evidenceChanged);
   }
   final EvidenceController evidence;
   final Duration interval;
+  final bool demoEnabled;
   late List<String> _ids;
   Timer? _timer;
   int _generation = 0;
@@ -38,6 +44,7 @@ class MockEvidenceCheckController extends ChangeNotifier {
       status == MockEvidenceCheckStatus.checking ? _completedCount : null;
   bool get buttonEnabled =>
       !_disposed &&
+      demoEnabled &&
       _ids.isNotEmpty &&
       status != MockEvidenceCheckStatus.checking;
   String get buttonLabel => switch (status) {
@@ -48,6 +55,12 @@ class MockEvidenceCheckController extends ChangeNotifier {
 
   void start() {
     if (!buttonEnabled) return;
+    assert(() {
+      debugPrint(
+        '[EvidenceCheck] UI mock only; no AI analysis or result storage.',
+      );
+      return true;
+    }());
     final generation = ++_generation;
     _completedCount = 0;
     _status = MockEvidenceCheckStatus.checking;
