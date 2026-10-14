@@ -28,6 +28,9 @@ void main() {
           tester,
           size: size,
           scale: scale,
+          // A 50px native inset + the unchanged 20px gap exercises the same
+          // remaining content height as Web's 70px header padding.
+          topInset: 50,
           useAnalysisRoute: true,
         );
         await h.enter('A ceiling leak');

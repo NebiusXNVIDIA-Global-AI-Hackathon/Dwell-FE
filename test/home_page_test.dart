@@ -2,6 +2,8 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:dwell/core/layouts/main_layout.dart';
+import 'package:dwell/core/widgets/app_screen_header.dart';
+import 'package:dwell/core/widgets/profile_avatar.dart';
 import 'package:dwell/core/widgets/bottom_nav_bar.dart';
 import 'package:dwell/features/home/widgets/current_case_card.dart';
 import 'package:dwell/features/home/widgets/needs_attention_card.dart';
@@ -72,6 +74,8 @@ void main() {
         expect(style.statusBarColor, const Color(0xFFF8F8F8));
         expect(style.statusBarIconBrightness, Brightness.dark);
         expect(style.systemNavigationBarIconBrightness, Brightness.dark);
+        final headerRect = tester.getRect(find.byType(AppScreenHeader));
+        final avatarRect = tester.getRect(find.byType(ProfileAvatar));
         final scroll = find.byKey(const ValueKey('home-scroll'));
         final position = tester
             .state<ScrollableState>(
@@ -88,6 +92,8 @@ void main() {
         );
         h.router.go('/cases');
         await tester.pumpAndSettle();
+        expect(tester.getRect(find.byType(AppScreenHeader)), headerRect);
+        expect(tester.getRect(find.byType(ProfileAvatar)), avatarRect);
         expect(systemStyle, findsNothing);
         expect(tester.takeException(), isNull);
       },

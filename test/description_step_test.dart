@@ -19,6 +19,7 @@ Future<CreationHarness> openDescription(
   WidgetTester tester, {
   Size size = const Size(390, 844),
   double scale = 1,
+  double topInset = 0,
   CaseCreationCompletion? onComplete,
   bool useAnalysisRoute = false,
 }) async {
@@ -29,6 +30,10 @@ Future<CreationHarness> openDescription(
     textScale: scale,
     onComplete: useAnalysisRoute ? null : onComplete ?? (_, _) async {},
   );
+  tester.view.padding = FakeViewPadding(top: topInset);
+  tester.view.viewPadding = FakeViewPadding(top: topInset);
+  addTearDown(tester.view.resetPadding);
+  addTearDown(tester.view.resetViewPadding);
   await h.toArea();
   await h.choose('Ceiling');
   await h.next();
