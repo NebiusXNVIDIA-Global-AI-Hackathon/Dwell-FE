@@ -20,13 +20,14 @@ Future<CreationHarness> openDescription(
   Size size = const Size(390, 844),
   double scale = 1,
   CaseCreationCompletion? onComplete,
+  bool useAnalysisRoute = false,
 }) async {
   final h = await CreationHarness.start(
     tester,
     direct: true,
     size: size,
     textScale: 1,
-    onComplete: onComplete,
+    onComplete: useAnalysisRoute ? null : onComplete ?? (_, _) async {},
   );
   await h.toArea();
   await h.choose('Ceiling');

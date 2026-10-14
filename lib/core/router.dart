@@ -11,6 +11,8 @@ import '../features/assistant/pages/chat_page.dart';
 import '../features/cases/pages/cases_page.dart';
 import '../features/splash/splash_page.dart';
 import '../features/cases/pages/case_creation_page.dart';
+import '../features/cases/pages/analyzing_evidence_page.dart';
+import '../features/cases/models/evidence_analysis_input.dart';
 import 'layouts/main_layout.dart';
 
 // 화면 추가 시 여기 GoRoute 도 추가
@@ -28,7 +30,29 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/cases/new',
         name: 'case-creation',
-        builder: (context, state) => const CaseCreationPage(),
+        builder: (context, state) => CaseCreationPage(
+          onComplete: (draft, evidence) async {
+            await context.pushNamed<void>(
+              'case-analysis',
+              extra: EvidenceAnalysisInput(draft, evidence),
+            );
+          },
+        ),
+        // Nested route keeps the creation page (and its evidence owner) mounted.
+        routes: [
+          GoRoute(
+            path: 'analyzing',
+            name: 'case-analysis',
+            redirect: (context, state) =>
+                state.extra is EvidenceAnalysisInput &&
+                    (state.extra! as EvidenceAnalysisInput).isAvailable
+                ? null
+                : '/cases/new',
+            builder: (context, state) => AnalyzingEvidencePage(
+              input: state.extra! as EvidenceAnalysisInput,
+            ),
+          ),
+        ],
       ),
       // Bring in a case — 하단바 없음
       GoRoute(
