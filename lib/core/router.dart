@@ -14,6 +14,7 @@ import '../features/cases/pages/case_creation_page.dart';
 import '../features/cases/pages/analyzing_evidence_page.dart';
 import '../features/cases/models/evidence_analysis_input.dart';
 import '../features/cases/models/case_creation_result.dart';
+import '../features/cases/models/reports_creation_notice.dart';
 import '../features/cases/pages/case_created_page.dart';
 import '../features/cases/controllers/mock_evidence_check_controller.dart'
     show mockEvidenceCheckPolicy;
@@ -122,7 +123,11 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/cases',
                 name: 'cases',
-                builder: (context, state) => const CasesPage(),
+                builder: (context, state) => CasesPage(
+                  creationNotice: state.extra is ReportsCreationNotice
+                      ? state.extra! as ReportsCreationNotice
+                      : null,
+                ),
               ),
             ],
           ),

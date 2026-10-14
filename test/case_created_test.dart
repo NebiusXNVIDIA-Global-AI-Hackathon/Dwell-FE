@@ -95,8 +95,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(h.router.routeInformationProvider.value.uri.path, '/cases');
       expect(h.router.canPop(), false);
-      expect(find.text('Case created successfully'), findsOneWidget);
-      expect(find.text('Demo only · No case was saved'), findsOneWidget);
+      expect(find.text('Demo case created'), findsOneWidget);
+      expect(find.text('Case created successfully'), findsNothing);
       expect(photo.isDisposed, true);
       expect(mockCases.length, count);
       expect(tester.takeException(), isNull);

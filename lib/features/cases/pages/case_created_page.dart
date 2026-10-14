@@ -3,6 +3,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../models/case_creation_result.dart';
+import '../models/reports_creation_notice.dart';
 import '../widgets/creation/case_creation_summary.dart';
 
 class CaseCreatedPage extends StatefulWidget {
@@ -20,26 +21,10 @@ class _CaseCreatedPageState extends State<CaseCreatedPage> {
   void _backToMain() {
     if (_leaving) return;
     setState(() => _leaving = true);
-    final messenger = ScaffoldMessenger.of(context);
-    final demo = widget.result.isDemo;
     context.goNamed(
       'cases',
+      extra: ReportsCreationNotice.fromResult(widget.result),
     ); // Remove creation/analysis/success from the stack.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!messenger.mounted) return;
-      messenger.showSnackBar(
-        SnackBar(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Case created successfully'),
-              if (demo) const Text('Demo only · No case was saved'),
-            ],
-          ),
-        ),
-      );
-    });
   }
 
   Widget _check(String text, bool verified) => Padding(

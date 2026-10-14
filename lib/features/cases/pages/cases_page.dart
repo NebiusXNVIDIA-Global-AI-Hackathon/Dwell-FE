@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:dwell/core/widgets/profile_avatar.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
@@ -6,6 +8,8 @@ import '../data/mock_cases.dart';
 import '../models/case_filters.dart';
 import '../models/case_model.dart';
 import '../models/case_sort_order.dart';
+import '../models/reports_creation_notice.dart';
+import '../widgets/list/case_creation_toast.dart';
 import '../widgets/list/case_card.dart';
 import '../widgets/list/case_filter_sheet.dart';
 import '../widgets/list/case_filter_tabs.dart';
@@ -16,7 +20,8 @@ import '../widgets/list/case_sort_menu.dart';
 import 'package:go_router/go_router.dart';
 
 class CasesPage extends StatefulWidget {
-  const CasesPage({super.key});
+  const CasesPage({super.key, this.creationNotice});
+  final ReportsCreationNotice? creationNotice;
 
   @override
   State<CasesPage> createState() => _CasesPageState();
@@ -28,6 +33,77 @@ class _CasesPageState extends State<CasesPage> {
   CaseFilters _appliedFilters = CaseFilters();
   CaseSortOrder _selectedSortOrder = CaseSortOrder.newest;
   String? _selectedCaseId;
+  ReportsCreationNotice? _toastNotice;
+  GoRouter? _router;
+
+  void _acceptNotice() {
+    final notice = widget.creationNotice;
+    if (notice != null && notice.consume()) {
+      _selectedStatus = CaseStatus.logged;
+      _toastNotice = notice;
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _acceptNotice();
+  }
+
+  @override
+  void didUpdateWidget(covariant CasesPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.creationNotice != widget.creationNotice) {
+      _toastNotice = null;
+      _acceptNotice();
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final router = GoRouter.maybeOf(context);
+    if (_router != router) {
+      _router?.routerDelegate.removeListener(_routeChanged);
+      _router = router;
+      _router?.routerDelegate.addListener(_routeChanged);
+    }
+  }
+
+  void _routeChanged() {
+    if (mounted && _toastNotice != null && _router?.state.name != 'cases') {
+      setState(() => _toastNotice = null);
+    }
+  }
+
+  double _toastTop(BuildContext context, BoxConstraints constraints) {
+    final width = math.min(260.0, math.max(1.0, constraints.maxWidth - 32));
+    final painter = TextPainter(
+      text: TextSpan(
+        text: _toastNotice?.message ?? '',
+        style: const TextStyle(
+          fontFamily: 'Pretendard Variable',
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+          height: 1.25,
+        ),
+      ),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout(maxWidth: math.max(1, width - 68));
+    final height = math.max(20.0, painter.height) + 26;
+    painter.dispose();
+    // Float 8px inside the grid's 16px padding; move upward on short screens
+    // to reserve the New Case button and its shadow without shrinking text.
+    return math.min(24, constraints.maxHeight - 82 - height);
+  }
+
+  @override
+  void dispose() {
+    _router?.routerDelegate.removeListener(_routeChanged);
+    super.dispose();
+  }
+
   List<CaseModel> get _matchingCases {
     final query = _searchQuery.trim().toLowerCase();
 
@@ -176,12 +252,18 @@ class _CasesPageState extends State<CasesPage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Cases',
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 40,
-                      fontWeight: FontWeight.w800,
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Cases',
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 40,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                     ),
                   ),
                   const ProfileAvatar(nickname: 'SJ'),
@@ -257,6 +339,7 @@ class _CasesPageState extends State<CasesPage> {
                 selectedStatus: _selectedStatus,
                 onChanged: (status) {
                   setState(() {
+                    if (_selectedStatus != status) _toastNotice = null;
                     _selectedStatus = status;
                   });
                 },
@@ -292,58 +375,86 @@ class _CasesPageState extends State<CasesPage> {
 
             // 카드 목록 또는 빈 상태
             Expanded(
-              child: visibleCases.isEmpty
-                  ? Align(
-                      alignment: const Alignment(0, -0.2),
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Text(
-                          _emptyMessage(matchingCases),
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: colors.onSurfaceVariant,
-                            fontSize: 14,
+              child: LayoutBuilder(
+                builder: (context, constraints) => Stack(
+                  fit: StackFit.expand,
+                  clipBehavior: Clip.none,
+                  children: [
+                    visibleCases.isEmpty
+                        ? Align(
+                            alignment: const Alignment(0, -0.2),
+                            child: Padding(
+                              padding: const EdgeInsets.all(24),
+                              child: Text(
+                                _emptyMessage(matchingCases),
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: colors.onSurfaceVariant,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          )
+                        : SingleChildScrollView(
+                            padding: const EdgeInsets.all(16),
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                final columns =
+                                    (constraints.maxWidth - 16) / 3 < 114
+                                    ? 2
+                                    : 3;
+                                final cardWidth =
+                                    (constraints.maxWidth - 8 * (columns - 1)) /
+                                    columns;
+
+                                return Align(
+                                  alignment: Alignment.topLeft,
+                                  child: Wrap(
+                                    spacing: 8,
+                                    runSpacing: 16,
+                                    children: [
+                                      for (final item in visibleCases)
+                                        SizedBox(
+                                          width: cardWidth,
+                                          child: CaseCard(
+                                            key: ValueKey(item.id),
+                                            caseItem: item,
+                                            isSelected:
+                                                _selectedCaseId == item.id,
+                                            onTap: () {
+                                              setState(() {
+                                                _selectedCaseId = item.id;
+                                              });
+                                            },
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                    if (_toastNotice case final notice?)
+                      Positioned(
+                        top: _toastTop(context, constraints),
+                        left: 16,
+                        right: 16,
+                        child: Align(
+                          alignment: Alignment.topCenter,
+                          child: CaseCreationToast(
+                            key: ObjectKey(notice),
+                            message: notice.message,
+                            onDismissed: () {
+                              if (mounted && _toastNotice == notice) {
+                                setState(() => _toastNotice = null);
+                              }
+                            },
                           ),
                         ),
                       ),
-                    )
-                  : SingleChildScrollView(
-                      padding: const EdgeInsets.all(16),
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          final columns = (constraints.maxWidth - 16) / 3 < 114
-                              ? 2
-                              : 3;
-                          final cardWidth =
-                              (constraints.maxWidth - 8 * (columns - 1)) /
-                              columns;
-
-                          return Align(
-                            alignment: Alignment.topLeft,
-                            child: Wrap(
-                              spacing: 8,
-                              runSpacing: 16,
-                              children: [
-                                for (final item in visibleCases)
-                                  SizedBox(
-                                    width: cardWidth,
-                                    child: CaseCard(
-                                      key: ValueKey(item.id),
-                                      caseItem: item,
-                                      isSelected: _selectedCaseId == item.id,
-                                      onTap: () {
-                                        setState(() {
-                                          _selectedCaseId = item.id;
-                                        });
-                                      },
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
