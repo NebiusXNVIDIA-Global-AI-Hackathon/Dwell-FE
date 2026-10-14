@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../models/evidence_model.dart';
+import 'evidence_media_platform.dart';
 
 class EvidenceLibraryResult {
   const EvidenceLibraryResult(this.photos, {this.failedCount = 0});
@@ -17,11 +18,19 @@ final evidenceLibraryPickerProvider = Provider<EvidenceLibraryPicker>(
 );
 
 class DeviceEvidenceLibrary {
-  DeviceEvidenceLibrary({Future<List<XFile>> Function()? pickImages})
-    : _pickImages =
-          pickImages ??
-          (() => ImagePicker().pickMultiImage(requestFullMetadata: false));
+  DeviceEvidenceLibrary({
+    Future<List<XFile>> Function()? pickImages,
+    Future<void> Function(XFile)? releasePhoto,
+  }) : _pickImages =
+           pickImages ??
+           (() => ImagePicker().pickMultiImage(requestFullMetadata: false)),
+       // Custom pickers are borrowed unless their adapter explicitly transfers
+       // ownership. The device picker returns app-cache copies / fresh URLs.
+       _releasePhoto =
+           releasePhoto ??
+           (pickImages == null ? (file) => releaseOwnedPhoto(file) : null);
   final Future<List<XFile>> Function() _pickImages;
+  final Future<void> Function(XFile)? _releasePhoto;
   bool _picking = false;
 
   Future<EvidenceLibraryResult> pickPhotos() async {
@@ -33,7 +42,12 @@ class DeviceEvidenceLibrary {
       var failed = 0;
       for (final file in files) {
         try {
-          photos.add(await EvidenceModel.fromFile(file));
+          photos.add(
+            await EvidenceModel.fromFile(
+              file,
+              cleanup: _releasePhoto == null ? null : () => _releasePhoto(file),
+            ),
+          );
         } catch (_) {
           // A bad or inaccessible file must not discard other selected photos.
           failed++;

@@ -1,5 +1,6 @@
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter/rendering.dart';
 
 import '../../../controllers/evidence_controller.dart';
 import '../../../models/evidence_model.dart';
@@ -32,31 +33,38 @@ class EvidenceStep extends StatelessWidget {
         );
 
   void _remove(EvidenceModel item) {
-    if (item.type == EvidenceType.photo) MemoryImage(item.bytes).evict();
     evidence!.remove(item.id);
   }
 
   Widget _delete(EvidenceModel item, int index, {bool main = false}) =>
       SizedBox(
-        width: main ? 44 : 28,
-        height: main ? 44 : 28,
+        width: 48,
+        height: 48,
         child: IconButton(
           tooltip: main
               ? 'Delete selected evidence'
               : 'Delete ${item.type.name} ${index + 1}',
           onPressed: () => _remove(item),
           padding: EdgeInsets.zero,
-          icon: Container(
-            width: main ? 28 : 18,
-            height: main ? 28 : 18,
-            decoration: const BoxDecoration(
-              color: Colors.black38,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              LucideIcons.x,
-              size: main ? 20 : 14,
-              color: Colors.white,
+          alignment: main
+              ? const Alignment(-0.2, -0.2)
+              : const Alignment(2 / 3, -2 / 3),
+          icon: Semantics(
+            label: main
+                ? 'Delete selected evidence'
+                : 'Delete ${item.type.name} ${index + 1}',
+            child: Container(
+              width: main ? 28 : 18,
+              height: main ? 28 : 18,
+              decoration: const BoxDecoration(
+                color: Colors.black38,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                LucideIcons.x,
+                size: main ? 20 : 14,
+                color: Colors.white,
+              ),
             ),
           ),
         ),
@@ -99,6 +107,7 @@ class EvidenceStep extends StatelessWidget {
     EvidenceModel item,
     EvidenceModel selected,
     int index,
+    BuildContext context,
   ) => SizedBox(
     width: 72,
     height: 72,
@@ -121,31 +130,37 @@ class EvidenceStep extends StatelessWidget {
               ),
             ),
             clipBehavior: Clip.antiAlias,
-            child: InkWell(
-              key: ValueKey(item.id),
-              onTap: () => evidence!.select(item.id),
-              child: item.type == EvidenceType.video
-                  ? EvidenceVideoThumbnail(
-                      key: ValueKey('thumbnail-${item.id}'),
-                      evidence: item,
-                    )
-                  : item.type == EvidenceType.audio
-                  ? const ColoredBox(
-                      color: Color(0xFFE3E3E3),
-                      child: Padding(
-                        padding: EdgeInsets.all(8),
-                        child: EvidenceAudioWave(),
+            child: _SelectionHitRegion(
+              child: InkWell(
+                key: ValueKey(item.id),
+                onTap: () => evidence!.select(item.id),
+                child: item.type == EvidenceType.video
+                    ? EvidenceVideoThumbnail(
+                        key: ValueKey('thumbnail-${item.id}'),
+                        evidence: item,
+                      )
+                    : item.type == EvidenceType.audio
+                    ? const ColoredBox(
+                        color: Color(0xFFE3E3E3),
+                        child: Padding(
+                          padding: EdgeInsets.all(8),
+                          child: EvidenceAudioWave(),
+                        ),
+                      )
+                    : item.type == EvidenceType.document
+                    ? EvidenceDocumentThumbnail(evidence: item)
+                    : Image(
+                        image: item.photoPreview(
+                          72,
+                          72,
+                          MediaQuery.devicePixelRatioOf(context),
+                        ),
+                        fit: BoxFit.cover,
+                        excludeFromSemantics: true,
+                        errorBuilder: (_, _, _) =>
+                            const Icon(LucideIcons.imageOff),
                       ),
-                    )
-                  : item.type == EvidenceType.document
-                  ? EvidenceDocumentThumbnail(evidence: item)
-                  : Image.memory(
-                      item.bytes,
-                      fit: BoxFit.cover,
-                      excludeFromSemantics: true,
-                      errorBuilder: (_, _, _) =>
-                          const Icon(LucideIcons.imageOff),
-                    ),
+              ),
             ),
           ),
         ),
@@ -193,12 +208,18 @@ class EvidenceStep extends StatelessWidget {
                       )
                     : AspectRatio(
                         aspectRatio: 2.06,
-                        child: Image.memory(
-                          selected.bytes,
-                          fit: BoxFit.cover,
-                          semanticLabel: 'Selected photo',
-                          errorBuilder: (_, _, _) => const Center(
-                            child: Text('Unable to preview this photo'),
+                        child: LayoutBuilder(
+                          builder: (context, constraints) => Image(
+                            image: selected.photoPreview(
+                              constraints.maxWidth,
+                              constraints.maxHeight,
+                              MediaQuery.devicePixelRatioOf(context),
+                            ),
+                            fit: BoxFit.cover,
+                            semanticLabel: 'Selected photo',
+                            errorBuilder: (_, _, _) => const Center(
+                              child: Text('Unable to preview this photo'),
+                            ),
                           ),
                         ),
                       ),
@@ -224,7 +245,12 @@ class EvidenceStep extends StatelessWidget {
               separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (context, index) => index == evidence!.items.length
                   ? _add()
-                  : _thumbnail(evidence!.items[index], selected, index),
+                  : _thumbnail(
+                      evidence!.items[index],
+                      selected,
+                      index,
+                      context,
+                    ),
             ),
           ),
         ] else
@@ -237,4 +263,20 @@ class EvidenceStep extends StatelessWidget {
       ],
     ),
   );
+}
+
+/// Preserve the visual tile while reserving its upper-right corner exclusively
+/// for deletion. InkWell retains keyboard and accessibility activation.
+class _SelectionHitRegion extends SingleChildRenderObjectWidget {
+  const _SelectionHitRegion({required super.child});
+  @override
+  RenderObject createRenderObject(BuildContext context) => _SelectionHitBox();
+}
+
+class _SelectionHitBox extends RenderProxyBox {
+  @override
+  bool hitTest(BoxHitTestResult result, {required Offset position}) {
+    if (position.dx >= size.width - 48 && position.dy < 48) return false;
+    return super.hitTest(result, position: position);
+  }
 }

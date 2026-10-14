@@ -6,11 +6,26 @@ import 'package:video_player/video_player.dart';
 import 'package:web/web.dart' as web;
 
 import 'evidence_media_format.dart';
+import 'evidence_player_operations.dart';
+
+class _EvidenceBrowserPlayer extends VideoPlayerController
+    with EvidencePlayerOperations {
+  _EvidenceBrowserPlayer(super.url)
+    : super.networkUrl(
+        videoPlayerOptions: VideoPlayerOptions(allowBackgroundPlayback: true),
+      );
+}
 
 VideoPlayerController evidenceMediaPlayer(XFile file) =>
-    VideoPlayerController.networkUrl(Uri.parse(file.path));
+    _EvidenceBrowserPlayer(Uri.parse(file.path));
 void releaseEvidenceBlob(XFile file) {
   if (file.path.startsWith('blob:')) web.URL.revokeObjectURL(file.path);
+}
+
+/// camera_web and image_picker_for_web create a fresh Object URL per returned
+/// file and transfer it to their caller. Never use this for a borrowed XFile.
+Future<void> releaseOwnedPhoto(XFile file, {Object? cacheDirectory}) async {
+  releaseEvidenceBlob(file);
 }
 
 XFile createEvidenceBlob(Uint8List bytes, String mime, String name) =>

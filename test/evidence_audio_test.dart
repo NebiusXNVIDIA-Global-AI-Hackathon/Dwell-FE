@@ -20,6 +20,7 @@ import 'package:video_player_platform_interface/video_player_platform_interface.
 
 import 'helpers/case_creation_test_harness.dart';
 import 'helpers/fake_evidence_video_player.dart';
+import 'evidence_player_session_test.dart' show finishReaders;
 
 late Directory storage;
 late XFile raw;
@@ -216,6 +217,78 @@ void main() {
     expect(result, same(audio));
     await tester.runAsync(() => audio!.dispose());
   });
+  for (final exit in ['return', 'back', 'remove', 'unmount']) {
+    testWidgets('Upload frame gap and duplicate click: $exit', (tester) async {
+      final audio = (await tester.runAsync(model))!;
+      EvidenceModel? returned;
+      var returns = 0;
+      await open(
+        tester,
+        FakeRecorder(),
+        saver: (_) async => audio,
+        result: (value) {
+          returned = value;
+          returns++;
+        },
+      );
+      await tap(tester, toggle);
+      await tap(tester, toggle);
+      final context = tester.element(find.byType(EvidenceAudioPage));
+      final navigator = Navigator.of(context);
+      final route = ModalRoute.of(context)!;
+      final upload = tester
+          .widget<ElevatedButton>(find.byKey(const ValueKey('audio-upload')))
+          .onPressed!;
+      upload();
+      upload();
+      expect(audio.isDisposed, isFalse);
+      if (exit == 'back') navigator.pop();
+      if (exit == 'remove') navigator.removeRoute(route);
+      if (exit == 'unmount') await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+      await tester.runAsync(() async {
+        for (
+          var i = 0;
+          i < 20 &&
+              (exit != 'return' && !audio.isDisposed ||
+                  audio.activeMediaReaders != 0);
+          i++
+        ) {
+          await Future<void>.delayed(const Duration(milliseconds: 10));
+        }
+      });
+      if (exit == 'return') {
+        expect(returned, same(audio));
+        expect(returns, 1);
+        expect(audio.isDisposed, isFalse);
+        expect(
+          await tester.runAsync(() => File(audio.file.path).exists()),
+          isTrue,
+        );
+        await tester.runAsync(audio.dispose);
+      } else {
+        expect(returned, isNull);
+        expect(audio.isDisposed, isTrue);
+        for (
+          var i = 0;
+          i < 100 && audio.cleanupStatus != EvidenceCleanupStatus.completed;
+          i++
+        ) {
+          await tester.pump();
+          await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 10)),
+          );
+        }
+        expect(audio.cleanupStatus, EvidenceCleanupStatus.completed);
+        expect(
+          await tester.runAsync(() => File(audio.file.path).exists()),
+          isFalse,
+        );
+      }
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets(
     'Wave and slider share playback position, pause, seek and completion',
     (tester) async {
@@ -455,10 +528,15 @@ void main() {
       expect(find.byType(EvidenceAudioPreview), findsOneWidget);
       await h.tap(find.byKey(const ValueKey('evidence-audio-play')));
       final pauses = player.pauses;
-      await tap(tester, find.byKey(ValueKey(photo.id)));
+      await tester.tapAt(
+        tester.getRect(find.byKey(ValueKey(photo.id))).bottomLeft +
+            const Offset(12, -12),
+      );
+      await tester.pumpAndSettle();
       expect(find.byType(EvidenceAudioPreview), findsNothing);
+      await finishReaders(tester, audio!);
       expect(player.disposals, greaterThan(0));
-      await h.tap(find.byKey(ValueKey(audio!.id)));
+      await h.tap(find.byKey(ValueKey(audio.id)));
       expect(find.text('00:00 / 00:02'), findsOneWidget);
       await h.tap(find.byTooltip('Delete audio 3'));
       expect(controller.items, [photo, video]);

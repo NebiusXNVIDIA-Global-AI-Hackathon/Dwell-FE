@@ -9,6 +9,8 @@ import 'package:record/record.dart';
 
 import '../models/evidence_model.dart';
 import 'evidence_media_platform.dart';
+import 'evidence_media_source.dart';
+import 'evidence_media_validation.dart';
 
 const evidenceAudioLimit = Duration(minutes: 3);
 typedef EvidenceAudioSaver = Future<EvidenceModel> Function(XFile);
@@ -71,7 +73,10 @@ abstract class EvidenceAudioRecorder {
 }
 
 class DeviceEvidenceAudioRecorder implements EvidenceAudioRecorder {
-  final AudioRecorder _recorder = AudioRecorder();
+  DeviceEvidenceAudioRecorder({AudioRecorder? recorder, this._createDirectory})
+    : _recorder = recorder ?? AudioRecorder();
+  final AudioRecorder _recorder;
+  final Future<Directory> Function()? _createDirectory;
   Directory? _directory;
   Future<void>? _pending;
   Future<void>? _closing;
@@ -94,9 +99,13 @@ class DeviceEvidenceAudioRecorder implements EvidenceAudioRecorder {
       );
       debugPrint('[RecordAudio] selected encoder=$encoder web=$kIsWeb');
       if (!kIsWeb) {
-        final base = await getTemporaryDirectory();
-        _directory = await Directory(base.path)
-            .createTemp('dwell-audio-capture-');
+        _directory =
+            await (_createDirectory?.call() ??
+                () async {
+                  final base = await getTemporaryDirectory();
+                  return Directory(base.path)
+                      .createTemp('dwell-audio-capture-');
+                }());
       }
       await _recorder.start(
         RecordConfig(
@@ -135,18 +144,40 @@ class DeviceEvidenceAudioRecorder implements EvidenceAudioRecorder {
       try {
         await _pending;
       } catch (_) {}
-      try {
-        await _recorder.cancel();
-      } catch (_) {}
+      // stop() already transferred this output to our guarded source lifetime.
+      // cancel() is allowed to delete output in the platform implementation.
+      if (_captured == null) {
+        try {
+          await _recorder.cancel();
+        } catch (_) {}
+      }
       try {
         await _recorder.dispose();
-      } finally {
+      } catch (_) {
+        final captured = _captured;
+        if (captured != null) {
+          EvidenceMediaSources.nativeReleaseFailed(captured);
+        }
+        debugPrint(
+          '[EvidenceValidation] recorder release failed; capture retained',
+        );
+        rethrow;
+      }
+      Future<void> cleanup() async {
         if (_captured != null) releaseEvidenceBlob(_captured!);
-        _captured = null;
         final directory = _directory;
         if (directory != null && await directory.exists()) {
           await directory.delete(recursive: true);
         }
+        _captured = null;
+        _directory = null;
+      }
+
+      final captured = _captured;
+      if (captured == null) {
+        await cleanup();
+      } else {
+        await EvidenceMediaSources.dispose(captured, cleanup);
       }
     }();
   }
@@ -158,58 +189,23 @@ Future<EvidenceModel> saveEvidenceAudio(
   Duration validationTimeout = const Duration(seconds: 15),
   Duration cleanupTimeout = const Duration(seconds: 5),
 }) async {
-  await audioStage('file check', () async {
-    if (await file.length() <= 12) {
-      throw const FormatException('Empty recording.');
-    }
-  });
-  debugPrint(
-    '[RecordAudio] file name=${file.name} mime=${file.mimeType} bytes=${await file.length()}',
+  return validateEvidenceMedia(
+    file,
+    audio: true,
+    validationTimeout: validationTimeout,
+    cleanupTimeout: cleanupTimeout,
+    store: (source, duration) => EvidenceModel.fromAudio(
+      source,
+      duration: duration,
+      storageDirectory: storageDirectory,
+    ),
   );
-  final prepared = await audioStage(
-    'container and browser validation',
-    () => prepareEvidenceMedia(file, audio: true),
-    onLateResult: (item) async {
-      if (item != file) releaseEvidenceBlob(item);
-    },
-  );
-  try {
-    final player = evidenceMediaPlayer(prepared);
-    late Duration duration;
-    try {
-      await audioStage(
-        'playback validation',
-        player.initialize,
-        timeout: validationTimeout,
-      );
-      duration = player.value.duration;
-      if (player.value.hasError || duration <= Duration.zero) {
-        throw const FormatException('The audio is unreadable.');
-      }
-    } finally {
-      try {
-        await audioStage(
-          'validation player dispose',
-          player.dispose,
-          timeout: cleanupTimeout,
-        );
-      } catch (_) {}
-    }
-    return await audioStage(
-      'cache copy',
-      () => EvidenceModel.fromAudio(
-        prepared,
-        duration: duration,
-        storageDirectory: storageDirectory,
-      ),
-      onLateResult: (model) => model.dispose(),
-    );
-  } finally {
-    if (prepared != file) releaseEvidenceBlob(prepared);
-  }
 }
 
 String evidenceAudioError(Object error) {
+  if (error is EvidenceMediaReleaseException) {
+    return 'Audio cleanup could not be confirmed. Restart the app before recording again.';
+  }
   if (error is UnsupportedError) {
     return 'This browser does not support a usable microphone recording format. Try another browser.';
   }

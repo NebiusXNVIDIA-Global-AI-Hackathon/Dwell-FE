@@ -252,7 +252,13 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage>
       setState(() => _isEvidenceSheetOpen = false);
       if (source == EvidenceSource.photo) {
         final photo = await ref.read(evidenceCameraLauncherProvider)(context);
-        if (mounted && photo != null) _evidence.add(photo);
+        if (photo != null) {
+          if (mounted && !_allowLeave) {
+            _evidence.add(photo);
+          } else {
+            await photo.dispose();
+          }
+        }
       } else if (source == EvidenceSource.library) {
         await _pickLibraryPhotos();
       } else if (source == EvidenceSource.video) {
@@ -350,7 +356,12 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage>
     _isLibraryPickerOpen = true;
     try {
       final result = await ref.read(evidenceLibraryPickerProvider)();
-      if (!mounted || _allowLeave) return;
+      if (!mounted || _allowLeave) {
+        for (final photo in result.photos) {
+          await photo.dispose();
+        }
+        return;
+      }
       for (final photo in result.photos) {
         _evidence.add(photo);
       }

@@ -7,6 +7,7 @@ import 'package:record/record.dart';
 
 import '../../models/evidence_model.dart';
 import '../../services/evidence_audio_recorder.dart';
+import '../../services/evidence_media_validation.dart';
 import '../../widgets/creation/evidence/evidence_audio_preview.dart';
 import '../../widgets/creation/evidence/evidence_audio_amplitude_wave.dart';
 
@@ -115,7 +116,9 @@ class _EvidenceAudioPageState extends State<EvidenceAudioPage>
         }
       });
     } catch (error) {
-      if (error is TimeoutException) _needsReopen = true;
+      if (error is TimeoutException || error is EvidenceMediaReleaseException) {
+        _needsReopen = true;
+      }
       if (mounted && generation == _generation) {
         _error = evidenceAudioError(error);
       }
@@ -195,7 +198,9 @@ class _EvidenceAudioPageState extends State<EvidenceAudioPage>
       );
       _result = result;
     } catch (error) {
-      if (error is TimeoutException) _needsReopen = true;
+      if (error is TimeoutException || error is EvidenceMediaReleaseException) {
+        _needsReopen = true;
+      }
       if (mounted && generation == _generation) {
         _error = evidenceAudioError(error);
       }
@@ -230,6 +235,9 @@ class _EvidenceAudioPageState extends State<EvidenceAudioPage>
       if (error is TimeoutException) {
         _needsReopen = true;
         _error = 'Audio cleanup timed out. Please reopen this screen before recording again.';
+      } else {
+        _needsReopen = true;
+        _error = 'Audio cleanup could not be confirmed. Restart the app before recording again.';
       }
     }
   }
@@ -291,10 +299,12 @@ class _EvidenceAudioPageState extends State<EvidenceAudioPage>
     final result = _result;
     if (!mounted || _closing || result == null) return;
     _closing = true;
-    _result = null;
+    final generation = _generation;
     setState(() => _canPop = true);
     await WidgetsBinding.instance.endOfFrame;
-    if (mounted) {
+    if (mounted &&
+        generation == _generation &&
+        ModalRoute.of(context)!.isCurrent) {
       debugPrint('[RecordAudio] Navigator.pop result=${result.id}');
       Navigator.of(context).pop(result);
     }
@@ -368,8 +378,15 @@ class _EvidenceAudioPageState extends State<EvidenceAudioPage>
   @override
   Widget build(BuildContext context) => PopScope<EvidenceModel>(
     canPop: _canPop,
-    onPopInvokedWithResult: (didPop, _) {
-      if (!didPop) _back();
+    onPopInvokedWithResult: (didPop, result) {
+      if (didPop) {
+        ++_generation;
+        // Only an acknowledged route return transfers ownership. A null pop
+        // or removal leaves the result with dispose(), even during Upload.
+        if (result != null && identical(result, _result)) _result = null;
+      } else {
+        _back();
+      }
     },
     child: Scaffold(
       backgroundColor: Colors.white,
@@ -401,10 +418,10 @@ class _EvidenceAudioPageState extends State<EvidenceAudioPage>
                   child: Column(
                     children: [
                       const SizedBox(height: 48),
-                      if (_result case final result?) ...[
+                      if (!_closing && _result != null) ...[
                         EvidenceAudioPreview(
-                          key: ValueKey(result.id),
-                          evidence: result,
+                          key: ValueKey(_result!.id),
+                          evidence: _result!,
                           active: !_busy && _active,
                         ),
                         Align(

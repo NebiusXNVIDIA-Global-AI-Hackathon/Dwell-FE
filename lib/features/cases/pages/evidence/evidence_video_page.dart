@@ -7,6 +7,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../models/evidence_model.dart';
 import '../../services/evidence_video_camera.dart';
 import '../../services/evidence_video_diagnostics.dart';
+import '../../services/evidence_camera_lease.dart';
 import '../../widgets/creation/evidence/evidence_guide_frame.dart';
 
 typedef EvidenceVideoLauncher = Future<EvidenceModel?> Function(BuildContext);
@@ -37,7 +38,6 @@ class _EvidenceVideoPageState extends State<EvidenceVideoPage>
   EvidenceVideoCamera? _camera;
   final _watch = Stopwatch();
   Timer? _timer;
-  Future<void>? _operation;
   Future<void> _release = Future.value();
   bool _busy = false;
   bool _resumeRequested = false;
@@ -59,7 +59,7 @@ class _EvidenceVideoPageState extends State<EvidenceVideoPage>
 
   void _initialize() {
     if (!mounted || !_active || _closing || _busy || _camera != null) return;
-    _operation = _initializeCamera();
+    unawaited(_initializeCamera());
   }
 
   Future<void> _initializeCamera() async {
@@ -104,7 +104,7 @@ class _EvidenceVideoPageState extends State<EvidenceVideoPage>
     logRecordVideo(
       'button pressed recording=$_recording elapsed=${_elapsed.inMilliseconds}ms',
     );
-    _operation = _recording ? _stop() : _start();
+    unawaited(_recording ? _stop() : _start());
   }
 
   Future<void> _start() async {
@@ -179,7 +179,7 @@ class _EvidenceVideoPageState extends State<EvidenceVideoPage>
         _closing = true;
         // Release the camera before returning so a new capture route cannot
         // overlap this route's reverse transition. The native stop is complete.
-        _releaseCamera(waitForOperation: false);
+        _releaseCamera();
         await _release;
         if (!mounted || !_active || generation != _generation) {
           await evidence.dispose();
@@ -240,7 +240,7 @@ class _EvidenceVideoPageState extends State<EvidenceVideoPage>
     }
   }
 
-  void _releaseCamera({bool waitForOperation = true}) {
+  void _releaseCamera() {
     final camera = _camera;
     _camera = null;
     _ready = false;
@@ -251,16 +251,12 @@ class _EvidenceVideoPageState extends State<EvidenceVideoPage>
       ..reset();
     if (camera != null) {
       camera.removeListener(_cameraChanged);
-      final pending = waitForOperation ? _operation : null;
       _release = _release.then((_) async {
-        try {
-          await pending?.timeout(const Duration(seconds: 65));
-        } catch (_) {}
         try {
           await recordVideoStage(
             'camera release',
             camera.dispose,
-            timeout: const Duration(seconds: 16),
+            timeout: evidenceCameraReleaseTimeout,
           );
         } catch (_) {}
       });
@@ -274,7 +270,9 @@ class _EvidenceVideoPageState extends State<EvidenceVideoPage>
     _generation++;
     _releaseCamera();
     if (mounted) setState(() {});
-    await _release;
+    try {
+      await _release.timeout(evidenceCameraReleaseTimeout);
+    } catch (_) {}
     if (!mounted) return;
     setState(() => _canPop = true);
     await WidgetsBinding.instance.endOfFrame;

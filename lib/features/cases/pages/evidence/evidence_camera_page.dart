@@ -18,8 +18,16 @@ final evidenceCameraLauncherProvider = Provider<EvidenceCameraLauncher>(
 );
 
 class EvidenceCameraPage extends StatefulWidget {
-  const EvidenceCameraPage({super.key, this.cameraFactory});
+  const EvidenceCameraPage({
+    super.key,
+    this.cameraFactory,
+    this.savePhoto,
+    this.discardPhoto,
+  });
   final EvidenceCamera Function()? cameraFactory;
+  // Test boundary; production validation takes ownership of capture output.
+  final Future<EvidenceModel> Function(XFile)? savePhoto;
+  final Future<void> Function(XFile)? discardPhoto;
   @override
   State<EvidenceCameraPage> createState() => _EvidenceCameraPageState();
 }
@@ -32,7 +40,10 @@ class _EvidenceCameraPageState extends State<EvidenceCameraPage>
   bool _active = true;
   String? _error;
   int _generation = 0;
-  Future<void> _release = Future.value();
+  EvidenceCameraOperation<dynamic>? _operation;
+  bool _releasing = false;
+  bool _releaseFailed = false;
+  bool _resumeRequested = false;
 
   @override
   void initState() {
@@ -42,23 +53,30 @@ class _EvidenceCameraPageState extends State<EvidenceCameraPage>
   }
 
   Future<void> _initialize() async {
-    if (_initializing || !_active || !mounted || _camera != null) return;
+    if (_initializing ||
+        _releasing ||
+        _releaseFailed ||
+        !_active ||
+        !mounted ||
+        _camera != null) {
+      return;
+    }
     _initializing = true;
+    _resumeRequested = false;
     final generation = ++_generation;
     setState(() => _error = null);
-    EvidenceCamera? camera;
     try {
-      await _release;
+      final camera = (widget.cameraFactory ?? DeviceEvidenceCamera.new)();
+      _camera = camera;
+      final operation = EvidenceCameraOperation<void>(
+        'camera initialize',
+        camera.initialize,
+        timeout: evidenceCameraInitializeTimeout,
+      );
+      _operation = operation;
+      await operation.result;
       if (!mounted || !_active || generation != _generation) return;
-      camera = (widget.cameraFactory ?? DeviceEvidenceCamera.new)();
-      await camera.initialize();
-      if (!mounted || !_active || generation != _generation) {
-        await camera.dispose();
-        camera = null;
-        return;
-      }
-      setState(() => _camera = camera);
-      camera = null; // Ownership transferred to this page.
+      setState(() {});
     } catch (error, stackTrace) {
       logEvidenceCameraDiagnostic(
         'page initialization failed',
@@ -68,14 +86,8 @@ class _EvidenceCameraPageState extends State<EvidenceCameraPage>
       if (mounted && _active && generation == _generation) {
         setState(() => _error = _message(error));
       }
+      if (generation == _generation) _releaseCamera();
     } finally {
-      if (camera != null) {
-        try {
-          await camera.dispose();
-        } catch (_) {
-          // Cleanup failure must not leave the error screen in a loading state.
-        }
-      }
       _initializing = false;
       if (mounted) {
         setState(() {});
@@ -85,7 +97,13 @@ class _EvidenceCameraPageState extends State<EvidenceCameraPage>
   }
 
   String _message(Object error) {
+    if (error is TimeoutException) {
+      return 'Camera initialization timed out. Wait for camera cleanup before Retry. If it remains unavailable, restart the app.';
+    }
     if (error is CameraException) {
+      if (error.code == 'CameraBusy') {
+        return 'The previous camera session is still closing. Wait and retry, or restart the app.';
+      }
       if ([
         'CameraAccessDenied',
         'CameraAccessDeniedWithoutPrompt',
@@ -134,23 +152,52 @@ class _EvidenceCameraPageState extends State<EvidenceCameraPage>
 
   Future<void> _capture() async {
     final camera = _camera;
-    if (camera == null || _capturing || !_active) return;
+    if (camera == null ||
+        _initializing ||
+        _capturing ||
+        _releasing ||
+        !_active) {
+      return;
+    }
     final generation = _generation;
     setState(() {
       _capturing = true;
       _error = null;
     });
     try {
-      final file = await camera.takePicture();
-      final evidence = await EvidenceModel.fromCapture(file);
+      final capture = EvidenceCameraOperation<XFile>(
+        'photo capture',
+        camera.takePicture,
+        timeout: evidenceCameraCaptureTimeout,
+        onLateResult: widget.discardPhoto ?? discardEvidenceCapture,
+      );
+      _operation = capture;
+      final file = await capture.result;
+      if (!mounted || !_active || generation != _generation) {
+        await (widget.discardPhoto ?? discardEvidenceCapture)(file);
+        return;
+      }
+      final save = EvidenceCameraOperation<EvidenceModel>(
+        'photo validation',
+        () => (widget.savePhoto ?? EvidenceModel.fromCapture)(file),
+        timeout: const Duration(seconds: 30),
+        onLateResult: (item) => item.dispose(),
+      );
+      _operation = save;
+      final evidence = await save.result;
       if (mounted && _active && generation == _generation) {
         Navigator.of(context).pop(evidence);
+      } else {
+        await evidence.dispose();
       }
-    } catch (_) {
+    } catch (error) {
       if (mounted && _active && generation == _generation) {
         setState(
-          () => _error = 'The photo could not be captured. Please try again.',
+          () => _error = error is TimeoutException
+              ? 'Photo capture timed out. Wait for camera cleanup before Retry. If it remains unavailable, restart the app.'
+              : 'The photo could not be captured. Please try again.',
         );
+        if (error is TimeoutException) _releaseCamera();
       }
     } finally {
       if (mounted) setState(() => _capturing = false);
@@ -161,9 +208,42 @@ class _EvidenceCameraPageState extends State<EvidenceCameraPage>
     final camera = _camera;
     _camera = null;
     if (camera != null) {
-      _release = _release
-          .then((_) => camera.dispose())
-          .catchError((Object _) {});
+      final pending = _operation;
+      pending?.abandon();
+      _releasing = true;
+      // Quarantine follows ORIGINAL completion, not the timed UI result. Never
+      // create another controller while native completion/release is unknown.
+      unawaited(() async {
+        try {
+          if (camera is DeviceEvidenceCamera) {
+            try {
+              await camera.dispose();
+            } on TimeoutException {
+              logEvidenceCameraDiagnostic(
+                'camera release UI timeout; native release pending',
+              );
+            }
+            await camera.released;
+          } else {
+            if (pending != null && !pending.finished) await pending.settled;
+            await camera.dispose();
+          }
+        } catch (_) {
+          _releaseFailed = true;
+          if (mounted) _error = 'Camera cleanup could not be confirmed. Restart the app before taking another photo.';
+        } finally {
+          _releasing = false;
+          if (mounted) {
+            setState(() {});
+            if (_active &&
+                !_initializing &&
+                !_releaseFailed &&
+                _resumeRequested) {
+              _initialize();
+            }
+          }
+        }
+      }());
     }
   }
 
@@ -172,6 +252,10 @@ class _EvidenceCameraPageState extends State<EvidenceCameraPage>
     logEvidenceCameraDiagnostic('lifecycle=${state.name}');
     _active = state == AppLifecycleState.resumed;
     if (!_active) {
+      if (_camera != null) {
+        _resumeRequested = true;
+        _error ??= 'Camera work was interrupted. Wait for camera cleanup before Retry. If it remains unavailable, restart the app.';
+      }
       _generation++;
       _releaseCamera();
       if (mounted) setState(() {});
@@ -242,7 +326,7 @@ class _EvidenceCameraPageState extends State<EvidenceCameraPage>
             child: Stack(
               fit: StackFit.expand,
               children: [
-                if (_camera != null)
+                if (_camera != null && !_initializing)
                   Center(
                     child: _camera!.buildPreview(
                       overlay: _error == null
@@ -310,7 +394,11 @@ class _EvidenceCameraPageState extends State<EvidenceCameraPage>
                           ),
                           const SizedBox(height: 16),
                           TextButton(
-                            onPressed: _capturing || _initializing
+                            onPressed:
+                                _capturing ||
+                                    _initializing ||
+                                    _releasing ||
+                                    _releaseFailed
                                 ? null
                                 : _camera == null
                                 ? _initialize
@@ -334,7 +422,12 @@ class _EvidenceCameraPageState extends State<EvidenceCameraPage>
               height: 72,
               child: FilledButton(
                 key: const ValueKey('camera-shutter'),
-                onPressed: _camera != null && !_capturing && _active
+                onPressed:
+                    _camera != null &&
+                        !_initializing &&
+                        !_capturing &&
+                        !_releasing &&
+                        _active
                     ? _capture
                     : null,
                 style: FilledButton.styleFrom(

@@ -6,7 +6,7 @@ import 'package:video_player/video_player.dart';
 
 import '../../../models/evidence_model.dart';
 import '../../../services/evidence_media_platform.dart';
-import '../../../services/evidence_video_diagnostics.dart';
+import '../../../services/evidence_player_session.dart';
 
 typedef EvidenceVideoPlayerFactory = VideoPlayerController Function(
   EvidenceModel,
@@ -36,7 +36,9 @@ class _EvidenceVideoPreviewState extends ConsumerState<EvidenceVideoPreview>
   bool _busy = false;
   bool _error = false;
   bool _active = true;
-  bool _retained = false;
+  EvidencePlayerSession? _session;
+  int _generation = 0;
+  Completer<void>? _acquisitionCancelled;
 
   @override
   void initState() {
@@ -46,57 +48,94 @@ class _EvidenceVideoPreviewState extends ConsumerState<EvidenceVideoPreview>
   }
 
   Future<void> _initialize() async {
+    final generation = ++_generation;
     try {
-      widget.evidence.retainVideo();
-      _retained = true;
-      final player = ref.read(evidenceVideoPlayerFactoryProvider)(
-        widget.evidence,
+      final evidence = widget.evidence;
+      final factory = ref.read(evidenceVideoPlayerFactoryProvider);
+      final cancelled = Completer<void>();
+      _acquisitionCancelled = cancelled;
+      final session = await EvidencePlayerSession.obtain(
+        evidence,
+        () => factory(evidence),
+        cancelled.future,
+        () => mounted && generation == _generation,
       );
+      if (!mounted || generation != _generation) {
+        session.release();
+        return;
+      }
+      _session = session;
+      final player = session.player;
       _player = player;
       player.addListener(_changed);
-      await recordVideoStage('preview initialize', player.initialize);
+      await session.ready;
       if (player.value.hasError) throw StateError('Playback unavailable.');
-      if (mounted) setState(() => _ready = true);
+      if (mounted && generation == _generation) setState(() => _ready = true);
     } catch (_) {
-      if (mounted) setState(() => _error = true);
+      if (mounted && generation == _generation) setState(() => _error = true);
     }
   }
 
   void _changed() {
-    if (mounted) setState(() => _error = _player?.value.hasError ?? false);
+    if (mounted &&
+        (_session?.status == EvidencePlayerStatus.ready ||
+            (_player?.value.hasError ?? false))) {
+      setState(() => _error = _player?.value.hasError ?? false);
+    }
   }
 
   Future<void> _toggle() async {
+    final generation = _generation;
     final player = _player;
     if (!_ready || player == null || _busy || !widget.active || !_active) {
       return;
     }
     setState(() => _busy = true);
     try {
-      if (player.value.isPlaying) {
-        await player.pause();
-      } else {
-        if (player.value.position >= player.value.duration) {
-          await player.seekTo(Duration.zero);
+      await _session!.run('toggle', () async {
+        if (player.value.isPlaying) {
+          await player.pause();
+        } else {
+          if (player.value.position >= player.value.duration) {
+            await player.seekTo(Duration.zero);
+          }
+          if (mounted &&
+              generation == _generation &&
+              widget.active &&
+              _active) {
+            await player.play();
+          }
+          if (!mounted || !widget.active || !_active) await player.pause();
         }
-        if (mounted && widget.active && _active) await player.play();
-        if (!mounted || !widget.active || !_active) await player.pause();
-      }
+      });
     } catch (_) {
-      if (mounted) setState(() => _error = true);
+      if (mounted && generation == _generation) setState(() => _error = true);
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted && generation == _generation) setState(() => _busy = false);
     }
   }
 
   void _pause() {
     final player = _player;
-    if (player != null) unawaited(player.pause().catchError((Object _) {}));
+    if (player != null && _session?.status == EvidencePlayerStatus.ready) {
+      unawaited(_session!.run('pause', player.pause).catchError((Object _) {}));
+    }
   }
 
   @override
   void didUpdateWidget(covariant EvidenceVideoPreview oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.evidence, widget.evidence)) {
+      _acquisitionCancelled?.complete();
+      _acquisitionCancelled = null;
+      ++_generation;
+      _player?.removeListener(_changed);
+      _session?.release();
+      _session = null;
+      _player = null;
+      _ready = _busy = _error = false;
+      _initialize();
+    }
     if (!widget.active) _pause();
   }
 
@@ -104,21 +143,18 @@ class _EvidenceVideoPreviewState extends ConsumerState<EvidenceVideoPreview>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _active = state == AppLifecycleState.resumed;
     if (!_active) _pause();
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    _acquisitionCancelled?.complete();
+    _acquisitionCancelled = null;
+    ++_generation;
     WidgetsBinding.instance.removeObserver(this);
-    final evidence = widget.evidence;
-    final retained = _retained;
     final player = _player;
     player?.removeListener(_changed);
-    unawaited(() async {
-      try {
-        await player?.dispose();
-      } catch (_) {}
-      if (retained) evidence.releaseVideo();
-    }());
+    _session?.release();
     super.dispose();
   }
 

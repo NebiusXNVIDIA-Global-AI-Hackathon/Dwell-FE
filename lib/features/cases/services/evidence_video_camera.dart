@@ -10,6 +10,9 @@ import '../models/evidence_model.dart';
 import '../widgets/creation/evidence/evidence_camera_cover_preview.dart';
 import 'evidence_video_diagnostics.dart';
 import 'evidence_media_platform.dart';
+import 'evidence_media_source.dart';
+import 'evidence_media_validation.dart';
+import 'evidence_camera_lease.dart';
 
 abstract interface class EvidenceVideoCamera implements Listenable {
   String? get errorDescription;
@@ -23,8 +26,22 @@ abstract interface class EvidenceVideoCamera implements Listenable {
 
 class DeviceEvidenceVideoCamera extends ChangeNotifier
     implements EvidenceVideoCamera {
+  DeviceEvidenceVideoCamera({
+    EvidenceCameraLeaseManager? leaseManager,
+    Future<List<CameraDescription>> Function()? enumerate,
+    EvidenceCameraControllerFactory? controllerFactory,
+  }) : leaseManager = leaseManager ?? EvidenceCameraLeaseManager.instance,
+       _enumerate = enumerate ?? availableCameras,
+       _controllerFactory = controllerFactory ?? createEvidenceCameraController;
+  final EvidenceCameraLeaseManager leaseManager;
+  final Future<List<CameraDescription>> Function() _enumerate;
+  final EvidenceCameraControllerFactory _controllerFactory;
+  EvidenceCameraLease? _lease;
+  Future<void> get released => _lease?.released ?? Future.value();
   CameraController? _controller;
   Future<void>? _initializing;
+  Object? _initializeError;
+  StackTrace? _initializeStack;
   Future<void>? _pending;
   Future<void>? _closing;
   bool _closed = false;
@@ -32,9 +49,25 @@ class DeviceEvidenceVideoCamera extends ChangeNotifier
   String? get errorDescription => _controller?.value.errorDescription;
 
   @override
-  Future<void> initialize() => _initializing ??= _initialize();
+  Future<void> initialize() async {
+    if (_closed) throw CameraException('CameraClosed', 'Camera is closed');
+    _initializing ??= cameraOperationSettled(
+      _initialize(),
+      onError: (error, stack) {
+        _initializeError = error;
+        _initializeStack = stack;
+      },
+    );
+    await _initializing;
+    if (_initializeError != null) {
+      Error.throwWithStackTrace(_initializeError!, _initializeStack!);
+    }
+  }
+
   Future<void> _initialize() async {
-    final cameras = await availableCameras();
+    if (_closed) throw CameraException('CameraClosed', 'Camera is closed');
+    _lease = leaseManager.acquire();
+    final cameras = await _enumerate();
     if (cameras.isEmpty) {
       throw CameraException('NoCamera', 'No camera is available.');
     }
@@ -43,11 +76,7 @@ class DeviceEvidenceVideoCamera extends ChangeNotifier
       (camera) => camera.lensDirection == CameraLensDirection.back,
       orElse: () => cameras.first,
     );
-    final controller = CameraController(
-      camera,
-      ResolutionPreset.high,
-      enableAudio: true,
-    );
+    final controller = _controllerFactory(camera, ResolutionPreset.high, true);
     _controller = controller;
     controller.addListener(_changed);
     await controller.initialize();
@@ -98,7 +127,7 @@ class DeviceEvidenceVideoCamera extends ChangeNotifier
       throw CameraException('RecordingBusy', 'Already recording.');
     }
     final operation = controller.startVideoRecording();
-    _pending = operation;
+    _pending = cameraOperationSettled(operation);
     return operation.whenComplete(() => _pending = null);
   }
 
@@ -106,68 +135,59 @@ class DeviceEvidenceVideoCamera extends ChangeNotifier
   Future<XFile> stopRecording() {
     final controller = _ready;
     final operation = controller.stopVideoRecording();
-    _pending = operation.then<void>(
-      (_) {},
-      onError: (Object _, StackTrace _) {},
-    );
+    _pending = cameraOperationSettled(operation);
     return operation.whenComplete(() => _pending = null);
   }
 
   @override
-  Future<void> discardFile(XFile file) async {
-    if (kIsWeb) {
-      releaseEvidenceBlob(file);
-      return;
-    }
-    final local = File(file.path);
-    if (await local.exists()) await local.delete();
-  }
+  Future<void> discardFile(XFile file) =>
+      EvidenceMediaSources.dispose(file, () async {
+        if (kIsWeb) {
+          releaseEvidenceBlob(file);
+          return;
+        }
+        final local = File(file.path);
+        if (await local.exists()) await local.delete();
+      });
 
   @override
   Future<void> dispose() {
     if (_closing != null) return _closing!;
     _closed = true;
     super.dispose();
-    return _closing = _dispose();
+    final lease = _lease;
+    return _closing = lease == null ? Future.value() : lease.close(_dispose);
   }
 
   Future<void> _dispose() async {
     _closed = true;
     try {
-      await _initializing?.timeout(const Duration(seconds: 5));
+      await _initializing;
     } catch (_) {}
-    var pendingFinished = true;
     try {
-      await _pending?.timeout(const Duration(seconds: 5));
-    } catch (error, stack) {
-      pendingFinished = false;
-      logRecordVideo('camera pending operation cleanup failed', error, stack);
-    }
+      await _pending;
+    } catch (_) {}
     final controller = _controller;
-    _controller = null;
     if (controller != null) {
       controller.removeListener(_changed);
       try {
-        if (pendingFinished && controller.value.isRecordingVideo) {
-          final file = await recordVideoStage(
-            'cancel stopVideoRecording',
-            controller.stopVideoRecording,
-            timeout: const Duration(seconds: 5),
-            onLateResult: discardFile,
-          );
-          await recordVideoStage(
-            'cancel raw file cleanup',
-            () => discardFile(file),
-            timeout: const Duration(seconds: 5),
+        if (controller.value.isRecordingVideo) {
+          final file = await controller.stopVideoRecording();
+          // File cleanup has a separate lifetime and must not hold hardware.
+          unawaited(
+            discardFile(file).catchError((Object _) {
+              logRecordVideo('cancel raw file cleanup incomplete');
+            }),
           );
         }
+      } catch (error, stack) {
+        // A returned stop error is not a pending native operation. Disposal
+        // still must be confirmed before returning the hardware lease.
+        logRecordVideo('cancel recording stop failed', error, stack);
       } finally {
-        await recordVideoStage(
-          'native camera dispose',
-          controller.dispose,
-          timeout: const Duration(seconds: 5),
-        );
+        await controller.dispose();
       }
+      _controller = null;
     }
   }
 }
@@ -184,57 +204,20 @@ Future<EvidenceModel> saveEvidenceVideo(
   if (elapsed < const Duration(seconds: 5)) {
     throw const FormatException('Video is too short.');
   }
-  await recordVideoStage('recording file check', () async {
-    final size = await file.length();
-    logRecordVideo('XFile name=${file.name} mime=${file.mimeType} bytes=$size');
-    if (size == 0) throw const FormatException('The recording file is empty.');
-  });
-  final prepared = await recordVideoStage(
-    'container and browser validation',
-    () => prepareEvidenceMedia(file, audio: false),
-    onLateResult: (item) async {
-      if (item != file) releaseEvidenceBlob(item);
-    },
+  return validateEvidenceMedia(
+    file,
+    audio: false,
+    validationTimeout: validationTimeout,
+    cleanupTimeout: cleanupTimeout,
+    store: (source, duration) =>
+        EvidenceModel.fromVideo(source, duration: duration),
   );
-  try {
-    final player = evidenceMediaPlayer(prepared);
-    late Duration duration;
-    try {
-      await recordVideoStage(
-        'VideoPlayerController.initialize',
-        player.initialize,
-        timeout: validationTimeout,
-      );
-      duration = player.value.duration;
-      logRecordVideo('encoded duration=${duration.inMilliseconds}ms');
-      if (player.value.hasError || duration < const Duration(seconds: 5)) {
-        throw const FormatException('Video is too short.');
-      }
-    } finally {
-      try {
-        await recordVideoStage(
-          'validation player dispose',
-          player.dispose,
-          timeout: cleanupTimeout,
-        );
-      } catch (error, stack) {
-        // Creation errors can leave the plugin's creatingCompleter unresolved.
-        // Do not let cleanup replace the validation error or wait forever.
-        logRecordVideo('validation player cleanup incomplete', error, stack);
-      }
-    }
-    return await recordVideoStage(
-      'cache copy',
-      () => EvidenceModel.fromVideo(prepared, duration: duration),
-      timeout: const Duration(seconds: 15),
-      onLateResult: (model) => model.dispose(),
-    );
-  } finally {
-    if (prepared != file) releaseEvidenceBlob(prepared);
-  }
 }
 
 String evidenceVideoError(Object error) {
+  if (error is EvidenceMediaReleaseException) {
+    return 'Video cleanup could not be confirmed. Restart the app before recording again.';
+  }
   if (error is TimeoutException) {
     return 'Video processing timed out. Please try again. If it keeps happening, restart the app.';
   }
@@ -242,6 +225,9 @@ String evidenceVideoError(Object error) {
     return 'Video playback could not be initialized. Fully restart the app and try again.';
   }
   if (error is CameraException) {
+    if (error.code == 'CameraBusy') {
+      return 'Previous camera cleanup is still pending. Wait and Retry. If it remains unavailable, restart the app.';
+    }
     final code = error.code.toLowerCase();
     if (code.contains('notsupported') || code.contains('not_supported')) {
       return 'This browser does not support a usable video recording format. Try another browser.';

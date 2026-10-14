@@ -6,10 +6,21 @@ import 'evidence_controller.dart';
 
 const mockEvidenceCheckInterval = Duration(milliseconds: 700);
 const evidenceCheckTransitionDuration = Duration(milliseconds: 200);
+
 // Release/profile builds cannot simulate successful checks unless the build is
 // explicitly configured for a demonstration. Never enable this in production.
-const mockEvidenceCheckEnabled =
-    kDebugMode || bool.fromEnvironment('DWELL_ENABLE_MOCK_EVIDENCE_CHECK');
+// --dart-define=DWELL_ENABLE_MOCK_EVIDENCE_CHECK=true is for demo builds only.
+class EvidenceDemoPolicy {
+  const EvidenceDemoPolicy({required this.debug, required this.demoFlag});
+  final bool debug;
+  final bool demoFlag;
+  bool get enabled => debug || demoFlag;
+}
+
+const mockEvidenceCheckPolicy = EvidenceDemoPolicy(
+  debug: kDebugMode,
+  demoFlag: bool.fromEnvironment('DWELL_ENABLE_MOCK_EVIDENCE_CHECK'),
+);
 const evidenceCheckLabels = [
   'Damage is visible',
   'Every item is clear and steady',
@@ -24,8 +35,8 @@ class MockEvidenceCheckController extends ChangeNotifier {
   MockEvidenceCheckController(
     this.evidence, {
     this.interval = mockEvidenceCheckInterval,
-    this.demoEnabled = mockEvidenceCheckEnabled,
-  }) {
+    bool? demoEnabled,
+  }) : demoEnabled = demoEnabled ?? mockEvidenceCheckPolicy.enabled {
     _ids = evidence.items.map((item) => item.id).toList();
     evidence.addListener(_evidenceChanged);
   }

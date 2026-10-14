@@ -116,7 +116,18 @@ class CreationHarness {
     expect(target, findsOneWidget);
     await tester.ensureVisible(target);
     await tester.pump();
-    await tester.tap(target);
+    final thumbnail = find.ancestor(
+      of: target,
+      matching: find.byKey(const ValueKey('evidence-thumbnails')),
+    );
+    if (thumbnail.evaluate().isNotEmpty && tester.widget(target) is InkWell) {
+      // The upper-right 48px belongs to deletion, including the tile center.
+      await tester.tapAt(
+        tester.getRect(target).bottomLeft + const Offset(12, -12),
+      );
+    } else {
+      await tester.tap(target);
+    }
     await tester.pump();
     // Route/dialog completion can schedule another frame after endOfFrame.
     if (tester.binding.hasScheduledFrame) await tester.pumpAndSettle();

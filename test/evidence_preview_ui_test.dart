@@ -153,7 +153,7 @@ void main() {
       expect(secondRect.top, plusRect.top);
       expect(firstRect.width, firstRect.height);
       expect(plusRect.left, greaterThan(secondRect.right));
-      await tester.tap(find.byKey(ValueKey(first.id)));
+      await tester.tapAt(firstRect.bottomLeft + const Offset(12, -12));
       await tester.pumpAndSettle();
       expect(state.selected, same(first));
       await tester.tap(find.byTooltip('Delete photo 2'));

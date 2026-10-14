@@ -10,6 +10,7 @@ import 'package:video_player_platform_interface/video_player_platform_interface.
 import 'helpers/case_creation_test_harness.dart';
 import 'helpers/fake_evidence_video_player.dart';
 import 'evidence_check_test.dart' show checkPage;
+import 'evidence_player_session_test.dart' show finishCleanup;
 
 void main() {
   setUpAll(loadCreationTestFonts);
@@ -80,12 +81,9 @@ void main() {
       expect(media.isDisposed, false);
       expect(media.duration, const Duration(seconds: 6));
       await tester.pumpWidget(const SizedBox());
-      for (var i = 0; i < 8; i++) {
-        await tester.pump();
-        await tester.runAsync(
-          () => Future<void>.delayed(const Duration(milliseconds: 10)),
-        );
-      }
+      // runAsync cannot advance fake-zone callbacks from player.dispose.
+      // Wait for confirmed cleanup while pumping, rather than an 80ms guess.
+      await finishCleanup(tester, media);
       await tester.runAsync(() async {
         await media.dispose();
         await storage!.delete(recursive: true);

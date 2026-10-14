@@ -17,6 +17,7 @@ import 'package:video_player_platform_interface/video_player_platform_interface.
 import 'case_creation_layout_test.dart' show collectLayoutProblems;
 import 'helpers/case_creation_test_harness.dart';
 import 'helpers/fake_evidence_video_player.dart';
+import 'evidence_player_session_test.dart' show finishReaders;
 
 late Directory storage;
 late XFile rawVideo;
@@ -24,6 +25,9 @@ late Uint8List photoBytes;
 final record = find.byKey(const ValueKey('video-record'));
 
 class FakeVideoCamera extends ChangeNotifier implements EvidenceVideoCamera {
+  Future<void>? _starting;
+  Future<void>? _stopping;
+  Future<void>? _closing;
   Completer<void>? initGate;
   Completer<void>? startGate;
   Completer<XFile>? stopGate;
@@ -52,7 +56,13 @@ class FakeVideoCamera extends ChangeNotifier implements EvidenceVideoCamera {
     overlay: overlay,
   );
   @override
-  Future<void> startRecording() async {
+  Future<void> startRecording() {
+    final work = _startRecording();
+    _starting = work.then<void>((_) {}, onError: (Object _, StackTrace _) {});
+    return work;
+  }
+
+  Future<void> _startRecording() async {
     starts++;
     await startGate?.future;
     if (startError != null) throw startError!;
@@ -60,7 +70,13 @@ class FakeVideoCamera extends ChangeNotifier implements EvidenceVideoCamera {
   }
 
   @override
-  Future<XFile> stopRecording() async {
+  Future<XFile> stopRecording() {
+    final work = _stopRecording();
+    _stopping = work.then<void>((_) {}, onError: (Object _, StackTrace _) {});
+    return work;
+  }
+
+  Future<XFile> _stopRecording() async {
     stops++;
     if (stopError != null) throw stopError!;
     final file = stopGate != null ? await stopGate!.future : rawVideo;
@@ -74,7 +90,19 @@ class FakeVideoCamera extends ChangeNotifier implements EvidenceVideoCamera {
   }
 
   @override
-  Future<void> dispose() async {
+  Future<void> dispose() {
+    if (_closing != null) return _closing!;
+    super.dispose();
+    return _closing = _dispose();
+  }
+
+  Future<void> _dispose() async {
+    try {
+      await _starting;
+    } catch (_) {}
+    try {
+      await _stopping;
+    } catch (_) {}
     try {
       if (recording) {
         await stopRecording();
@@ -82,7 +110,6 @@ class FakeVideoCamera extends ChangeNotifier implements EvidenceVideoCamera {
       }
     } finally {
       disposals++;
-      super.dispose();
     }
   }
 }
@@ -450,7 +477,13 @@ void main() {
         throwsFormatException,
       );
     });
-    expect(platform.disposals, 1);
+    for (var i = 0; i < 500 && platform.completedDisposals == 0; i++) {
+      await tester.pump();
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 2)),
+      );
+    }
+    expect(platform.completedDisposals, 1);
   });
 
   testWidgets(
@@ -533,6 +566,10 @@ void main() {
 
       await h.tap(find.byKey(ValueKey(photo.id)));
       expect(state.selected, same(photo));
+
+      // pumpAndSettle advances fake time, not the native release's real-zone
+      // callbacks. Confirm the old lease is gone before expecting a new player.
+      await finishReaders(tester, video);
 
       await h.tap(find.byKey(ValueKey(video.id)));
       expect(state.selected, same(video));
@@ -634,7 +671,13 @@ void main() {
         throwsA(isA<TimeoutException>()),
       );
     });
-    expect(platform.disposals, 1);
+    for (var i = 0; i < 500 && platform.completedDisposals == 0; i++) {
+      await tester.pump();
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 2)),
+      );
+    }
+    expect(platform.completedDisposals, 1);
   });
 
   testWidgets('Empty recording fails before a decoder is created', (

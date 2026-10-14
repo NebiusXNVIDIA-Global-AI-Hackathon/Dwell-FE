@@ -18,6 +18,14 @@ class EvidenceChecklist extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Text(
+          controller?.demoEnabled == false
+              ? 'AI analysis not connected · Check unavailable'
+              : 'Demo preview · AI analysis not connected',
+          key: const ValueKey('evidence-check-notice'),
+          style: const TextStyle(fontSize: 12, color: Color(0xFF627381)),
+        ),
+        const SizedBox(height: 12),
         for (var i = 0; i < evidenceCheckLabels.length; i++) ...[
           if (i > 0) const SizedBox(height: 16),
           _item(context, i),

@@ -10,6 +10,12 @@ class FakeEvidenceVideoPlayer extends VideoPlayerPlatform {
   Object? initializationError;
   Object? platformInitializationError;
   Completer<void>? createGate;
+  Object? creationError;
+  Object? disposalError;
+  Completer<void>? disposeGate;
+  Completer<void>? playGate;
+  int createAttempts = 0;
+  int completedDisposals = 0;
   bool sendInitialized = true;
   int creates = 0;
   int plays = 0;
@@ -24,7 +30,9 @@ class FakeEvidenceVideoPlayer extends VideoPlayerPlatform {
 
   @override
   Future<int?> createWithOptions(VideoCreationOptions options) async {
+    createAttempts++;
     await createGate?.future;
+    if (creationError != null) throw creationError!;
     final id = ++creates;
     streams[id] = StreamController<VideoEvent>();
     return id;
@@ -50,12 +58,16 @@ class FakeEvidenceVideoPlayer extends VideoPlayerPlatform {
   @override
   Future<void> dispose(int playerId) async {
     disposals++;
+    await disposeGate?.future;
+    if (disposalError != null) throw disposalError!;
     await streams[playerId]?.close();
+    completedDisposals++;
   }
 
   @override
   Future<void> play(int playerId) async {
     plays++;
+    await playGate?.future;
   }
 
   @override
@@ -65,6 +77,8 @@ class FakeEvidenceVideoPlayer extends VideoPlayerPlatform {
 
   @override
   Future<void> setLooping(int playerId, bool looping) async {}
+  @override
+  Future<void> setMixWithOthers(bool mixWithOthers) async {}
   @override
   Future<void> setVolume(int playerId, double volume) async {}
   @override

@@ -1,6 +1,76 @@
+import 'dart:async';
+
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/widgets.dart';
+
+import 'evidence_media_platform.dart';
+import 'evidence_camera_lease.dart';
+export 'evidence_camera_lease.dart' show evidenceCameraReleaseTimeout;
+
+const evidenceCameraInitializeTimeout = Duration(seconds: 20);
+const evidenceCameraCaptureTimeout = Duration(seconds: 15);
+
+/// UI completion and native completion are separate. Abandoning cancels only
+/// the UI timer; settled still follows the original work and late cleanup.
+class EvidenceCameraOperation<T> {
+  EvidenceCameraOperation(
+    String stage,
+    Future<T> Function() action, {
+    required Duration timeout,
+    Future<void> Function(T)? onLateResult,
+  }) {
+    logEvidenceCameraDiagnostic('$stage start');
+    _timer = Timer(timeout, () {
+      logEvidenceCameraDiagnostic('$stage timeout');
+      abandon(TimeoutException('$stage timed out'));
+    });
+    settled = () async {
+      try {
+        final value = await action();
+        if (_result.isCompleted) {
+          if (onLateResult != null) {
+            logEvidenceCameraDiagnostic('$stage late result cleanup');
+            await onLateResult(value);
+          }
+        } else {
+          _timer.cancel();
+          logEvidenceCameraDiagnostic('$stage success');
+          _result.complete(value);
+        }
+      } catch (error) {
+        if (!_result.isCompleted) {
+          _timer.cancel();
+          _result.completeError(error);
+        }
+        logEvidenceCameraDiagnostic('$stage failed', error: error);
+      } finally {
+        finished = true;
+      }
+    }();
+  }
+  final _result = Completer<T>();
+  late final Timer _timer;
+  late final Future<void> settled;
+  bool finished = false;
+  Future<T> get result => _result.future;
+  void abandon([Object? error]) {
+    _timer.cancel();
+    if (!_result.isCompleted) {
+      _result.completeError(
+        error ?? CameraException('Cancelled', 'Operation cancelled'),
+      );
+    }
+  }
+}
+
+Future<void> discardEvidenceCapture(XFile file) async {
+  try {
+    await releaseOwnedPhoto(file).timeout(evidenceCameraReleaseTimeout);
+  } catch (_) {
+    logEvidenceCameraDiagnostic('late photo cleanup failed');
+  }
+}
 
 /// Debug-only diagnostics; never log captured files or image bytes.
 void logEvidenceCameraDiagnostic(
@@ -11,14 +81,16 @@ void logEvidenceCameraDiagnostic(
   if (!kDebugMode) return;
   debugPrint('[TakePhoto] $message');
   if (error is CameraException) {
-    debugPrint(
-      '[TakePhoto] code=${error.code} description=${error.description ?? ""}',
-    );
+    debugPrint('[TakePhoto] code=${error.code}');
   } else if (error != null) {
-    debugPrint('[TakePhoto] ${error.runtimeType}: $error');
+    debugPrint('[TakePhoto] ${error.runtimeType}');
   }
   if (stackTrace != null) {
-    debugPrintStack(label: '[TakePhoto] StackTrace', stackTrace: stackTrace);
+    debugPrintStack(
+      label: '[TakePhoto] StackTrace',
+      stackTrace: stackTrace,
+      maxFrames: 8,
+    );
   }
 }
 
@@ -31,26 +103,52 @@ abstract interface class EvidenceCamera {
 }
 
 class DeviceEvidenceCamera implements EvidenceCamera {
+  DeviceEvidenceCamera({
+    EvidenceCameraLeaseManager? leaseManager,
+    Future<List<CameraDescription>> Function()? enumerate,
+    EvidenceCameraControllerFactory? controllerFactory,
+  }) : leaseManager = leaseManager ?? EvidenceCameraLeaseManager.instance,
+       _enumerate = enumerate ?? availableCameras,
+       _controllerFactory = controllerFactory ?? createEvidenceCameraController;
+  final EvidenceCameraLeaseManager leaseManager;
+  final Future<List<CameraDescription>> Function() _enumerate;
+  final EvidenceCameraControllerFactory _controllerFactory;
+  EvidenceCameraLease? _lease;
   CameraController? _controller;
   Future<void>? _initializing;
+  Object? _initializeError;
+  StackTrace? _initializeStack;
   Future<XFile>? _capture;
+  Future<void>? _captureSettled;
   bool _closed = false;
   Future<void>? _closing;
+  Future<void>? _released;
+  Future<void> get released => _released ?? Future.value();
 
   @override
-  Future<void> initialize() => _initializing ??= _initialize();
+  Future<void> initialize() async {
+    if (_closed) throw CameraException('CameraClosed', 'Camera is closed');
+    _initializing ??= cameraOperationSettled(
+      _initialize(),
+      onError: (error, stack) {
+        _initializeError = error;
+        _initializeStack = stack;
+      },
+    );
+    await _initializing;
+    if (_initializeError != null) {
+      Error.throwWithStackTrace(_initializeError!, _initializeStack!);
+    }
+  }
+
   Future<void> _initialize() async {
+    if (_closed) throw CameraException('CameraClosed', 'Camera is closed');
+    _lease = leaseManager.acquire();
     var stage = 'availableCameras';
     try {
       logEvidenceCameraDiagnostic('availableCameras start');
-      final cameras = await availableCameras();
+      final cameras = await _enumerate();
       logEvidenceCameraDiagnostic('availableCameras count=${cameras.length}');
-      for (var i = 0; i < cameras.length; i++) {
-        final device = cameras[i];
-        logEvidenceCameraDiagnostic(
-          'camera[$i] name=${device.name} lens=${device.lensDirection.name} orientation=${device.sensorOrientation}',
-        );
-      }
       if (cameras.isEmpty) {
         throw CameraException('NoCamera', 'No camera is available.');
       }
@@ -60,12 +158,12 @@ class DeviceEvidenceCamera implements EvidenceCamera {
         orElse: () => cameras.first,
       );
       logEvidenceCameraDiagnostic(
-        'selected=${camera.name} lens=${camera.lensDirection.name} resolution=max enableAudio=false',
+        'selected lens=${camera.lensDirection.name} resolution=max enableAudio=false',
       );
-      final controller = CameraController(
+      final controller = _controllerFactory(
         camera,
         ResolutionPreset.max,
-        enableAudio: false,
+        false,
       );
       _controller = controller;
       stage = 'CameraController.initialize';
@@ -94,11 +192,22 @@ class DeviceEvidenceCamera implements EvidenceCamera {
     }
     final capture = _controller!.takePicture();
     _capture = capture;
+    _captureSettled = cameraOperationSettled(capture);
     return capture.whenComplete(() => _capture = null);
   }
 
   @override
-  Future<void> dispose() => _closing ??= _dispose();
+  Future<void> dispose() {
+    if (_closing != null) return _closing!;
+    _closed = true;
+    logEvidenceCameraDiagnostic('camera release requested');
+    final lease = _lease;
+    if (lease == null) return _closing = Future.value();
+    _closing = lease.close(_dispose);
+    _released = lease.released;
+    return _closing!;
+  }
+
   Future<void> _dispose() async {
     _closed = true;
     // Let outstanding native operations finish before releasing their controller.
@@ -106,9 +215,17 @@ class DeviceEvidenceCamera implements EvidenceCamera {
       await _initializing;
     } catch (_) {}
     try {
-      await _capture;
+      await _captureSettled;
     } catch (_) {}
-    await _controller?.dispose();
-    _controller = null;
+    logEvidenceCameraDiagnostic('camera release start');
+    try {
+      await _controller?.dispose();
+      _controller = null;
+      logEvidenceCameraDiagnostic('camera release complete');
+    } catch (error) {
+      // Keep the global lease when native release cannot be confirmed.
+      logEvidenceCameraDiagnostic('camera release failed', error: error);
+      rethrow;
+    }
   }
 }

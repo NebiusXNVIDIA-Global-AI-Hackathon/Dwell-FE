@@ -31,6 +31,7 @@ class FakeCamera implements EvidenceCamera {
   Object? initError;
   Object? captureError;
   Object? disposeError;
+  Completer<void>? disposeGate;
   int captures = 0;
   int initializes = 0;
   int disposes = 0;
@@ -62,6 +63,7 @@ class FakeCamera implements EvidenceCamera {
   @override
   Future<void> dispose() async {
     disposes++;
+    await disposeGate?.future;
     if (disposeError != null) throw disposeError!;
   }
 }
@@ -72,6 +74,8 @@ Future<void> openCamera(
   EvidenceCamera Function() factory, {
   Size size = const Size(393, 844),
   double scale = 1,
+  Future<EvidenceModel> Function(XFile)? savePhoto,
+  Future<void> Function(XFile)? discardPhoto,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = size;
@@ -86,7 +90,11 @@ Future<void> openCamera(
         builder: (context) => TextButton(
           onPressed: () => Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => EvidenceCameraPage(cameraFactory: factory),
+              builder: (_) => EvidenceCameraPage(
+                cameraFactory: factory,
+                savePhoto: savePhoto ?? EvidenceModel.fromFile,
+                discardPhoto: discardPhoto ?? (_) async {},
+              ),
             ),
           ),
           child: const Text('Open camera'),
@@ -164,7 +172,7 @@ void main() {
       },
     );
   }
-  testWidgets('Initialization cleanup failure still offers retry', (
+  testWidgets('Unconfirmed cleanup blocks retry without leaving loading UI', (
     tester,
   ) async {
     final bad = FakeCamera()
@@ -177,7 +185,13 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsNothing);
     await tester.tap(find.text('Retry'));
     await tester.pumpAndSettle();
-    expect(good.initializes, 1);
+    expect(good.initializes, 0);
+    expect(
+      find.text(
+        'Camera cleanup could not be confirmed. Restart the app before taking another photo.',
+      ),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 
@@ -194,8 +208,10 @@ void main() {
               onPressed: () async {
                 result = await Navigator.of(context).push<EvidenceModel>(
                   MaterialPageRoute(
-                    builder: (_) =>
-                        EvidenceCameraPage(cameraFactory: () => fake),
+                    builder: (_) => EvidenceCameraPage(
+                      cameraFactory: () => fake,
+                      savePhoto: EvidenceModel.fromFile,
+                    ),
                   ),
                 );
               },
@@ -244,6 +260,32 @@ void main() {
       expect(fake.disposes, 1);
     },
   );
+  testWidgets(
+    'Resume during unresolved initialization shows recovery guidance without overlap',
+    (tester) async {
+      final camera = FakeCamera()..initGate = Completer<void>();
+      var creates = 0;
+      await openCamera(tester, () {
+        creates++;
+        return camera;
+      });
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(
+        find.textContaining('Camera work was interrupted'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Retry'));
+      await tester.pump();
+      expect(creates, 1);
+      // Never complete the native Future; the UI has no outstanding timeout.
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('Back while capture is pending ignores late results', (
     tester,
   ) async {
@@ -260,6 +302,135 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(EvidenceCameraPage), findsNothing);
     expect(fake.disposes, 1);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'Never-completing initialization clears loading and quarantines retry',
+    (tester) async {
+      final first = FakeCamera()..initGate = Completer<void>();
+      final second = FakeCamera();
+      var created = 0;
+      await openCamera(tester, () => created++ == 0 ? first : second);
+      await tester.pump(evidenceCameraInitializeTimeout);
+      await tester.pump();
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.textContaining('initialization timed out'), findsOneWidget);
+      await tester.tap(find.text('Retry'));
+      await tester.tap(find.text('Retry'));
+      await tester.pump();
+      expect(created, 1);
+      expect(first.disposes, 0);
+      // Actual late completion releases the old session before enabling Retry.
+      first.initGate!.complete();
+      await tester.pumpAndSettle();
+      expect(first.disposes, 1);
+      await tester.tap(find.text('Retry'));
+      await tester.tap(find.text('Retry'));
+      await tester.pumpAndSettle();
+      expect(created, 2);
+      expect(second.initializes, 1);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'Never-completing capture times out and discards its late file once',
+    (tester) async {
+      final camera = FakeCamera()..captureGate = Completer<XFile>();
+      var creates = 0, discarded = 0, saved = 0;
+      await openCamera(
+        tester,
+        () {
+          creates++;
+          return camera;
+        },
+        savePhoto: (file) {
+          saved++;
+          return EvidenceModel.fromFile(file);
+        },
+        discardPhoto: (_) async {
+          discarded++;
+        },
+      );
+      await tester.tap(shutter);
+      await tester.tap(shutter);
+      await tester.pump(evidenceCameraCaptureTimeout);
+      await tester.pump();
+      expect(camera.captures, 1);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.textContaining('capture timed out'), findsOneWidget);
+      await tester.tap(find.text('Retry'));
+      await tester.pump();
+      expect(creates, 1);
+      camera.captureGate!.complete(photoFile());
+      await tester.pumpAndSettle();
+      expect(discarded, 1);
+      expect(saved, 0);
+      expect(camera.disposes, 1);
+      expect(find.byType(EvidenceCameraPage), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'Exit cancels UI timer while native initialization remains unresolved',
+    (tester) async {
+      final camera = FakeCamera()..initGate = Completer<void>();
+      await openCamera(tester, () => camera);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byType(EvidenceCameraPage), findsNothing);
+      expect(camera.disposes, 0);
+      // Intentionally never complete: no timeout timer or unsafe dispose remains.
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'Stalled release has no spinner and cannot create a second camera',
+    (tester) async {
+      final camera = FakeCamera()
+        ..initError = CameraException('CameraAccessDenied', 'denied')
+        ..disposeGate = Completer<void>();
+      var creates = 0;
+      await openCamera(tester, () {
+        creates++;
+        return camera;
+      });
+      await tester.pump(const Duration(seconds: 30));
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      await tester.tap(find.text('Retry'));
+      await tester.pump();
+      expect(creates, 1);
+      camera.disposeGate!.complete();
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('Exit during photo validation releases its late owned result', (
+    tester,
+  ) async {
+    var cleaned = 0;
+    final item = (await tester.runAsync(
+      () => EvidenceModel.fromFile(
+        photoFile(),
+        cleanup: () async {
+          cleaned++;
+        },
+      ),
+    ))!;
+    final gate = Completer<EvidenceModel>();
+    await openCamera(tester, FakeCamera.new, savePhoto: (_) => gate.future);
+    await tester.tap(shutter);
+    await tester.pump();
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    gate.complete(item);
+    await tester.pumpAndSettle();
+    expect(item.isDisposed, true);
+    expect(cleaned, 1);
     expect(tester.takeException(), isNull);
   });
   testWidgets(
@@ -307,7 +478,10 @@ void main() {
           cameras.add(fake);
           return Navigator.of(context).push<EvidenceModel>(
             MaterialPageRoute(
-              builder: (_) => EvidenceCameraPage(cameraFactory: () => fake),
+              builder: (_) => EvidenceCameraPage(
+                cameraFactory: () => fake,
+                savePhoto: EvidenceModel.fromFile,
+              ),
             ),
           );
         },
@@ -386,10 +560,10 @@ void main() {
     'Evidence controller preserves original file, selection, and deletion',
     (tester) async {
       final photo = await tester.runAsync(
-        () => EvidenceModel.fromCapture(photoFile()),
+        () => EvidenceModel.fromCapture(photoFile(), cleanup: () async {}),
       );
       final second = await tester.runAsync(
-        () => EvidenceModel.fromCapture(photoFile()),
+        () => EvidenceModel.fromCapture(photoFile(), cleanup: () async {}),
       );
       final state = EvidenceController();
       state.add(photo!);
@@ -485,10 +659,10 @@ void main() {
           final evidence = EvidenceController();
           addTearDown(evidence.dispose);
           final photo = await tester.runAsync(
-            () => EvidenceModel.fromCapture(photoFile()),
+            () => EvidenceModel.fromCapture(photoFile(), cleanup: () async {}),
           );
           final second = await tester.runAsync(
-            () => EvidenceModel.fromCapture(photoFile()),
+            () => EvidenceModel.fromCapture(photoFile(), cleanup: () async {}),
           );
           evidence.add(photo!);
           evidence.add(second!);

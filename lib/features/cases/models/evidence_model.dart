@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'dart:ui' as ui;
 
@@ -16,12 +17,24 @@ import '../services/evidence_media_format.dart';
 
 enum EvidenceType { photo, video, audio, document }
 
-/// Session evidence: photos share bytes; recordings own a private cache file.
+enum EvidenceCleanupStatus {
+  active,
+  waitingForReaders,
+  deleting,
+  pending,
+  completed,
+  failed,
+}
+
+const evidenceReaderReleaseTimeout = Duration(seconds: 15);
+
+/// Session evidence: photos preview independent bytes and optionally own their
+/// source via an explicit cleanup callback; recordings own a private cache file.
 class EvidenceModel {
   EvidenceModel._({
     required this.id,
     required this.file,
-    required this.bytes,
+    required this._bytes,
     required this.mimeType,
     required this.addedAt,
     this.type = EvidenceType.photo,
@@ -32,11 +45,36 @@ class EvidenceModel {
     this._documentName,
     this._documentCleanup,
     this._documentPreviewBytes,
+    this._photoCleanup,
+    this.photoWidth,
+    this.photoHeight,
   });
   static int _sequence = 0;
   final String id;
   final XFile file;
-  final Uint8List bytes;
+  Uint8List _bytes;
+  Uint8List get bytes => _bytes;
+  final int? photoWidth;
+  final int? photoHeight;
+  final _photoProviders = <ImageProvider<Object>>{};
+
+  /// Decode enough pixels for cover while preserving the source aspect ratio.
+  ImageProvider<Object> photoPreview(double width, double height, double dpr) {
+    if (isDisposed) throw StateError('Evidence has been removed.');
+    final scale = math.min(
+      1.0,
+      math.max(width * dpr / photoWidth!, height * dpr / photoHeight!),
+    );
+    final targetWidth = (photoWidth! * scale).ceil().clamp(1, photoWidth!);
+    final provider = ResizeImage.resizeIfNeeded(
+      targetWidth,
+      null,
+      MemoryImage(bytes),
+    );
+    _photoProviders.add(provider);
+    return provider;
+  }
+
   final String mimeType;
   final DateTime addedAt;
   final EvidenceType type;
@@ -65,7 +103,14 @@ class EvidenceModel {
   }
 
   final Directory? _videoDirectory;
+  Future<void> Function()? _photoCleanup;
   Future<void>? _disposing;
+  Future<void>? _cleanupCompletion;
+  EvidenceCleanupStatus _cleanupStatus = EvidenceCleanupStatus.active;
+  EvidenceCleanupStatus get cleanupStatus => _cleanupStatus;
+  Future<void>? get cleanupCompletion => _cleanupCompletion;
+  @visibleForTesting
+  int get activeMediaReaders => _videoReaders;
   Future<Uint8List?>? _thumbnail;
   Uint8List? _thumbnailBytes;
   Future<void> Function()? _clearNativeThumbnailCache;
@@ -227,9 +272,19 @@ class EvidenceModel {
     }
   }
 
-  /// Only this model's private, app-created recording directory is removed.
+  /// Release only explicitly owned sources and private session directories.
   Future<void> dispose() {
     if (_disposing != null) return _disposing!;
+    if (type == EvidenceType.photo) {
+      unawaited(MemoryImage(this.bytes).evict());
+      for (final provider in _photoProviders) {
+        unawaited(provider.evict());
+      }
+      _photoProviders.clear();
+      // Mounted streams keep their own bytes until unmounted. A removed model
+      // should no longer retain the encoded original.
+      _bytes = Uint8List(0);
+    }
     _audioLevels = const [];
     _audioLevelTimes = const [];
     audioCaptureDuration = null;
@@ -245,14 +300,51 @@ class EvidenceModel {
     _clearNativeThumbnailCache = null;
     if (clear != null) unawaited(clear().catchError((Object _) {}));
     if (bytes != null) unawaited(MemoryImage(bytes).evict());
-    return _disposing = _deleteVideo();
+    _cleanupCompletion = _deleteVideo().then(
+      (_) {
+        _cleanupStatus = EvidenceCleanupStatus.completed;
+      },
+      onError: (Object error, StackTrace stack) {
+        _cleanupStatus = EvidenceCleanupStatus.failed;
+        Error.throwWithStackTrace(error, stack);
+      },
+    );
+    unawaited(_cleanupCompletion!.catchError((Object _) {}));
+    return _disposing = _awaitCleanup();
+  }
+
+  Future<void> _awaitCleanup() async {
+    final readers = _readersReleased;
+    if (readers != null) {
+      // Bound the caller's wait only. _deleteVideo keeps following the original
+      // reader barrier; timeout never deletes a source still used natively.
+      await readers.future.timeout(evidenceReaderReleaseTimeout);
+    }
+    if (type == EvidenceType.photo) {
+      // Limit UI waiting, not the original cleanup operation or its ownership.
+      await _cleanupCompletion!.timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          _cleanupStatus = EvidenceCleanupStatus.pending;
+          debugPrint('[EvidencePhoto] resource cleanup still pending');
+          throw TimeoutException('Photo cleanup is still pending.');
+        },
+      );
+    } else {
+      await _cleanupCompletion;
+    }
   }
 
   Future<void> _deleteVideo() async {
     if (_videoReaders > 0) {
+      _cleanupStatus = EvidenceCleanupStatus.waitingForReaders;
       _readersReleased = Completer<void>();
       await _readersReleased!.future;
     }
+    _cleanupStatus = EvidenceCleanupStatus.deleting;
+    final photoCleanup = _photoCleanup;
+    _photoCleanup = null;
+    if (photoCleanup != null) await photoCleanup();
     final directory = _videoDirectory;
     final cleanup = _documentCleanup;
     _documentCleanup = null;
@@ -311,7 +403,20 @@ class EvidenceModel {
     }
   }
 
-  static Future<EvidenceModel> fromCapture(XFile file) => fromFile(file);
+  /// Capture output is app-owned; native deletion is restricted to app cache.
+  static Future<EvidenceModel> fromCapture(
+    XFile file, {
+    Future<void> Function()? cleanup,
+  }) => fromFile(file, cleanup: cleanup ?? () => releaseOwnedPhoto(file));
+
+  static Future<void> _releasePhoto(Future<void> Function() cleanup) async {
+    try {
+      await cleanup().timeout(const Duration(seconds: 5));
+    } catch (_) {
+      // A failed cleanup must not mask validation errors or block other items.
+      debugPrint('[EvidencePhoto] resource cleanup failed or timed out');
+    }
+  }
 
   static Future<EvidenceModel> _fromBrowserMedia(
     XFile file,
@@ -337,7 +442,26 @@ class EvidenceModel {
     );
   }
 
-  static Future<EvidenceModel> fromFile(XFile file) async {
+  /// Borrowed by default. An explicit callback transfers only app-owned output;
+  /// validation failure releases it here, success transfers it to the model.
+  static Future<EvidenceModel> fromFile(
+    XFile file, {
+    Future<void> Function()? cleanup,
+  }) async {
+    try {
+      return await _fromPhoto(file, cleanup);
+    } catch (_) {
+      if (cleanup != null) await _releasePhoto(cleanup);
+      rethrow;
+    }
+  }
+
+  static Future<EvidenceModel> _fromPhoto(
+    XFile file,
+    Future<void> Function()? cleanup,
+  ) async {
+    // Complete all file reads before publishing the model. Every photo preview
+    // decodes these bytes, so deleting its source cannot race an image decoder.
     final bytes = await file.readAsBytes();
     final String mime;
     if (bytes.length >= 3 &&
@@ -362,13 +486,31 @@ class EvidenceModel {
     } else {
       throw const FormatException('The file is not a supported photo.');
     }
-    // Reject corrupt captures without transforming or re-encoding the original.
-    final codec = await ui.instantiateImageCodec(bytes);
+    // Inspect dimensions without decoding the original frame; still decode a
+    // small frame to reject corrupt data rather than trusting only its header.
+    final buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
+    late int width, height;
     try {
-      final frame = await codec.getNextFrame();
-      frame.image.dispose();
+      final descriptor = await ui.ImageDescriptor.encoded(buffer);
+      try {
+        width = descriptor.width;
+        height = descriptor.height;
+        final scale = math.min(1.0, 64 / math.max(width, height));
+        final codec = await descriptor.instantiateCodec(
+          targetWidth: math.max(1, (width * scale).ceil()),
+          targetHeight: math.max(1, (height * scale).ceil()),
+        );
+        try {
+          final frame = await codec.getNextFrame();
+          frame.image.dispose();
+        } finally {
+          codec.dispose();
+        }
+      } finally {
+        descriptor.dispose();
+      }
     } finally {
-      codec.dispose();
+      buffer.dispose();
     }
     final now = DateTime.now();
     return EvidenceModel._(
@@ -377,6 +519,9 @@ class EvidenceModel {
       bytes: bytes,
       mimeType: mime,
       addedAt: now,
+      photoCleanup: cleanup,
+      photoWidth: width,
+      photoHeight: height,
     );
   }
 }
