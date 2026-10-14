@@ -1,118 +1,168 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../data/home_mock_data.dart';
+import '../data/home_severity_colors.dart';
 
 class CurrentCaseCard extends StatelessWidget {
-  const CurrentCaseCard({super.key, required this.data, this.onViewCase});
+  const CurrentCaseCard({
+    super.key,
+    required this.data,
+    this.onViewCase,
+    this.cases = const [],
+    this.onSelectCase,
+  });
   final HomeCaseData data;
+  final List<HomeCaseData> cases;
+  final ValueChanged<String>? onSelectCase;
   final VoidCallback? onViewCase;
 
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
+  Widget build(BuildContext context) => Stack(
     children: [
-      Padding(
-        padding: const EdgeInsets.only(left: 16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Container(width: 48, height: 35, color: const Color(0xFFE8ABA7)),
-            Container(width: 48, height: 28, color: const Color(0xFFF0CE9C)),
-          ],
-        ),
-      ),
-      Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFFF8F6F1),
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: const Color(0xFFE3E0D4)),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x33000000),
-              blurRadius: 3,
-              offset: Offset(0, 4),
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 35),
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8F6F1),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: const Color(0xFFE3E0D4)),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x33000000),
+                  blurRadius: 3,
+                  offset: Offset(0, 4),
+                ),
+              ],
             ),
-          ],
-        ),
-        padding: const EdgeInsets.fromLTRB(14, 23, 14, 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 3),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: double.infinity,
-                    child: Wrap(
-                      alignment: WrapAlignment.spaceBetween,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: 12,
-                      children: [
-                        Text(
-                          data.title,
-                          style: const TextStyle(
-                            fontSize: 24,
-                            height: 1.2,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF243B53),
-                          ),
+            padding: const EdgeInsets.fromLTRB(14, 23, 14, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: double.infinity,
+                        child: Wrap(
+                          alignment: WrapAlignment.spaceBetween,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 12,
+                          children: [
+                            Text(
+                              data.title,
+                              style: const TextStyle(
+                                fontSize: 24,
+                                height: 1.2,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF243B53),
+                              ),
+                            ),
+                            Text(
+                              'Case #${data.number}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF929292),
+                              ),
+                            ),
+                          ],
                         ),
-                        Text(
-                          'Case #${data.number}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF929292),
-                          ),
+                      ),
+                      Text(
+                        'Location: ${data.location}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          height: 1.25,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF243B53),
                         ),
-                      ],
-                    ),
-                  ),
-                  Text(
-                    'Location: ${data.location}',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      height: 1.25,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF243B53),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Last update ${data.lastUpdate}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      height: 1.3,
-                      color: Color(0xFF929292),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 4),
-            _CaseProgress(createdDate: data.createdDate),
-            const SizedBox(height: 12),
-            ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 43),
-              child: FilledButton(
-                onPressed: onViewCase,
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF243B53),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  textStyle: const TextStyle(
-                    fontFamily: 'Pretendard Variable',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Last update ${data.lastUpdate}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          height: 1.3,
+                          color: Color(0xFF929292),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: const Text('View Case'),
-              ),
+                const SizedBox(height: 4),
+                _CaseProgress(
+                  createdDate: data.createdDate,
+                  progress: data.progress,
+                ),
+                const SizedBox(height: 12),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 43),
+                  child: FilledButton(
+                    onPressed: onViewCase,
+                    style:
+                        FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFF243B53),
+                          foregroundColor: Colors.white,
+                          splashFactory: NoSplash.splashFactory,
+                          overlayColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          textStyle: const TextStyle(
+                            fontFamily: 'Pretendard Variable',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ).copyWith(
+                          backgroundColor: WidgetStateProperty.resolveWith(
+                            (states) => states.contains(WidgetState.pressed)
+                                ? const Color(0xFF506275)
+                                : const Color(0xFF243B53),
+                          ),
+                        ),
+                    child: const Text('View Case'),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
+        ],
+      ),
+      Positioned(
+        top: 0,
+        left: 16,
+        right: 0,
+        child: SizedBox(
+          height: 48,
+          child: Stack(
+            children: [
+              for (final item in [
+                ...cases.where((item) => item.number != data.number),
+                ...cases.where((item) => item.number == data.number),
+              ])
+                Positioned(
+                  left: cases.indexOf(item) * 48.0,
+                  top: 0,
+                  width: 48,
+                  height: 48,
+                  child: Semantics(
+                    button: true,
+                    selected: item.number == data.number,
+                    label:
+                        '${item.title}, Case ${item.number}, ${item.severity.name} severity',
+                    child: _CaseTabButton(
+                      key: ValueKey('home-case-${item.number}'),
+                      color: homeSeverityColor(item.severity),
+                      selected: item.number == data.number,
+                      onPressed: () => onSelectCase?.call(item.number),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     ],
@@ -120,8 +170,9 @@ class CurrentCaseCard extends StatelessWidget {
 }
 
 class _CaseProgress extends StatelessWidget {
-  const _CaseProgress({required this.createdDate});
+  const _CaseProgress({required this.createdDate, required this.progress});
   final String createdDate;
+  final HomeCaseProgress progress;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -174,23 +225,23 @@ class _CaseProgress extends StatelessWidget {
                         height: 21,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: i < 2
+                          color: i <= progress.index
                               ? const Color(0xFF243B53)
                               : const Color(0xFFF8F8F8),
-                          border: i == 2
+                          border: i > progress.index
                               ? Border.all(
                                   color: const Color(0xFFD6D6D6),
                                   width: 2,
                                 )
                               : null,
                         ),
-                        child: i == 0
+                        child: i < progress.index
                             ? const Icon(
                                 Icons.check,
                                 size: 18,
                                 color: Colors.white,
                               )
-                            : i == 1
+                            : i == progress.index
                             ? const Center(
                                 child: SizedBox(
                                   width: 9,
@@ -255,5 +306,57 @@ class _CaseProgress extends StatelessWidget {
         ],
       ),
     ],
+  );
+}
+
+class _CaseTabButton extends StatefulWidget {
+  const _CaseTabButton({
+    super.key,
+    required this.color,
+    required this.selected,
+    required this.onPressed,
+  });
+  final Color color;
+  final bool selected;
+  final VoidCallback onPressed;
+  @override
+  State<_CaseTabButton> createState() => _CaseTabButtonState();
+}
+
+class _CaseTabButtonState extends State<_CaseTabButton> {
+  final WidgetStatesController _states = WidgetStatesController();
+  @override
+  void dispose() {
+    _states.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => TextButton(
+    statesController: _states,
+    onPressed: widget.onPressed,
+    style: TextButton.styleFrom(
+      padding: EdgeInsets.zero,
+      minimumSize: Size.zero,
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      splashFactory: NoSplash.splashFactory,
+      overlayColor: Colors.transparent,
+    ),
+    child: ListenableBuilder(
+      listenable: _states,
+      builder: (context, _) => Align(
+        alignment: Alignment.topCenter,
+        child: Padding(
+          padding: EdgeInsets.only(top: widget.selected ? 0 : 7),
+          child: Container(
+            width: 48,
+            height: widget.selected ? 35 : 28,
+            color: _states.value.contains(WidgetState.pressed)
+                ? Color.alphaBlend(const Color(0x24000000), widget.color)
+                : widget.color,
+          ),
+        ),
+      ),
+    ),
   );
 }

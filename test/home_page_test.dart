@@ -8,6 +8,7 @@ import 'package:dwell/core/widgets/bottom_nav_bar.dart';
 import 'package:dwell/features/home/widgets/current_case_card.dart';
 import 'package:dwell/features/home/widgets/needs_attention_card.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -92,8 +93,15 @@ void main() {
         );
         h.router.go('/cases');
         await tester.pumpAndSettle();
-        expect(tester.getRect(find.byType(AppScreenHeader)), headerRect);
-        expect(tester.getRect(find.byType(ProfileAvatar)), avatarRect);
+        final reportsHeader = tester.getRect(find.byType(AppScreenHeader));
+        final reportsAvatar = tester.getRect(find.byType(ProfileAvatar));
+        final webDifference = kIsWeb ? 70 - AppScreenHeader.webTopGap : 0;
+        expect(reportsHeader.top, headerRect.top);
+        expect(reportsHeader.height, headerRect.height - webDifference);
+        expect(
+          reportsAvatar,
+          avatarRect.shift(Offset(0, -webDifference.toDouble())),
+        );
         expect(systemStyle, findsNothing);
         expect(tester.takeException(), isNull);
       },

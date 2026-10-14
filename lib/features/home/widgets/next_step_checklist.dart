@@ -1,15 +1,15 @@
 import 'package:material_ui/material_ui.dart';
 
-class NextStepChecklist extends StatefulWidget {
-  const NextStepChecklist({super.key, required this.items});
+class NextStepChecklist extends StatelessWidget {
+  const NextStepChecklist({
+    super.key,
+    required this.items,
+    required this.checked,
+    required this.onChanged,
+  });
   final List<String> items;
-
-  @override
-  State<NextStepChecklist> createState() => _NextStepChecklistState();
-}
-
-class _NextStepChecklistState extends State<NextStepChecklist> {
-  final Set<int> _checked = {};
+  final Set<int> checked;
+  final void Function(int, bool) onChanged;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -74,46 +74,58 @@ class _NextStepChecklistState extends State<NextStepChecklist> {
                 ),
               ),
               const SizedBox(height: 6),
-              for (var i = 0; i < widget.items.length; i++) ...[
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      width: 23,
-                      height: 24,
-                      child: Checkbox(
-                        key: ValueKey('home-checklist-$i'),
-                        value: _checked.contains(i),
-                        onChanged: (value) => setState(() {
-                          value == true ? _checked.add(i) : _checked.remove(i);
-                        }),
-                        activeColor: const Color(0xFF243B53),
-                        side: const BorderSide(color: Color(0xFFE3E3E3)),
-                        shape: const RoundedRectangleBorder(),
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        visualDensity: VisualDensity.compact,
-                        semanticLabel: widget.items[i],
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: CustomPaint(
-                        painter: _NotebookLines(
-                          MediaQuery.textScalerOf(context).scale(12) * 1.85,
+              for (var i = 0; i < items.length; i++) ...[
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => onChanged(i, !checked.contains(i)),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 23,
+                        height: 24,
+                        child: Checkbox(
+                          key: ValueKey('home-checklist-$i'),
+                          value: checked.contains(i),
+                          onChanged: (value) => onChanged(i, value == true),
+                          fillColor: const WidgetStatePropertyAll(
+                            Colors.transparent,
+                          ),
+                          checkColor: const Color(0xFF243B53),
+                          side: WidgetStateBorderSide.resolveWith(
+                            (states) => BorderSide(
+                              color: states.contains(WidgetState.selected)
+                                  ? const Color(0xFF243B53)
+                                  : const Color(0xFFE3E3E3),
+                            ),
+                          ),
+                          shape: const RoundedRectangleBorder(),
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
+                          semanticLabel: items[i],
                         ),
-                        child: Text(
-                          widget.items[i],
-                          style: const TextStyle(
-                            fontSize: 12,
-                            height: 1.85,
-                            color: Color(0xFF606060),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: CustomPaint(
+                          painter: _NotebookLines(
+                            MediaQuery.textScalerOf(context).scale(12) * 1.85,
+                          ),
+                          child: Text(
+                            items[i],
+                            style: const TextStyle(
+                              fontSize: 12,
+                              height: 1.85,
+                              color: Color(0xFF606060),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-                if (i < widget.items.length - 1) const SizedBox(height: 12),
+                if (i < items.length - 1) const SizedBox(height: 12),
               ],
             ],
           ),

@@ -26,7 +26,10 @@ void main() {
                     padding: EdgeInsets.only(
                       top: AppScreenHeader.systemTopInset(context),
                     ),
-                    child: const AppScreenHeader(title: Text('Cases')),
+                    child: const AppScreenHeader(
+                      webTopPadding: 70,
+                      title: Text('Cases'),
+                    ),
                   ),
                 ),
               ),

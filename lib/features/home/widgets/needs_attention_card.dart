@@ -28,19 +28,31 @@ class NeedsAttentionCard extends StatelessWidget {
         child: FilledButton(
           key: const ValueKey('home-check-unit'),
           onPressed: onCheckUnit,
-          style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFF2C5861),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            minimumSize: const Size(0, 32),
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            textStyle: const TextStyle(
-              fontFamily: 'Pretendard Variable',
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-            shape: const StadiumBorder(),
-          ),
+          style:
+              FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF2C5861),
+                foregroundColor: Colors.white,
+                splashFactory: NoSplash.splashFactory,
+                overlayColor: Colors.transparent,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                minimumSize: const Size(0, 32),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                textStyle: const TextStyle(
+                  fontFamily: 'Pretendard Variable',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+                shape: const StadiumBorder(),
+              ).copyWith(
+                backgroundColor: WidgetStateProperty.resolveWith(
+                  (states) => states.contains(WidgetState.pressed)
+                      ? const Color(0xFF416D76)
+                      : const Color(0xFF2C5861),
+                ),
+              ),
           child: const Text('Check my unit', textAlign: TextAlign.center),
         ),
       ),

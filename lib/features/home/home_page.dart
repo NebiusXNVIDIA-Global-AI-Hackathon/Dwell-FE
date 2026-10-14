@@ -8,8 +8,21 @@ import 'widgets/current_case_card.dart';
 import 'widgets/needs_attention_card.dart';
 import 'widgets/next_step_checklist.dart';
 
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+class HomePage extends StatefulWidget {
+  const HomePage({super.key, this.onViewCase, this.onViewDetail});
+  final ValueChanged<String>? onViewCase;
+  final VoidCallback? onViewDetail;
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  String _selectedId = homeCases.first.number;
+  final Map<String, Set<int>> _checkedByCase = {};
+  final GlobalKey _attentionKey = GlobalKey();
+  HomeCaseData get _selected =>
+      homeCases.firstWhere((item) => item.number == _selectedId);
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -28,6 +41,7 @@ class HomePage extends StatelessWidget {
           child: Column(
             children: [
               AppScreenHeader(
+                webTopPadding: 70,
                 title: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -61,14 +75,36 @@ class HomePage extends StatelessWidget {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 5),
                           child: CurrentCaseCard(
-                            data: homeCurrentCase,
-                            onViewCase: () => context.goNamed('cases'),
+                            data: _selected,
+                            cases: homeCases,
+                            onSelectCase: (id) =>
+                                setState(() => _selectedId = id),
+                            onViewCase: () {
+                              if (widget.onViewCase case final callback?) {
+                                callback(_selectedId);
+                              } else {
+                                // Existing destination is the list, not Case Detail.
+                                context.goNamed('cases', extra: _selectedId);
+                              }
+                            },
                           ),
                         ),
                         const SizedBox(height: 22),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 5),
-                          child: NextStepChecklist(items: homeChecklist),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 5),
+                          child: NextStepChecklist(
+                            items: _selected.checklist,
+                            checked: _checkedByCase[_selectedId] ?? const {},
+                            onChanged: (index, checked) => setState(() {
+                              final values = _checkedByCase.putIfAbsent(
+                                _selectedId,
+                                () => {},
+                              );
+                              checked
+                                  ? values.add(index)
+                                  : values.remove(index);
+                            }),
+                          ),
                         ),
                         const SizedBox(height: 20),
                         Row(
@@ -84,24 +120,56 @@ class HomePage extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            // No attention detail route exists yet.
-                            const Text(
-                              'View detail',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF606060),
+                            TextButton(
+                              onPressed:
+                                  widget.onViewDetail ??
+                                  () {
+                                    Scrollable.ensureVisible(
+                                      _attentionKey.currentContext!,
+                                      duration: const Duration(
+                                        milliseconds: 250,
+                                      ),
+                                      alignment: 0.5,
+                                    );
+                                  },
+                              style:
+                                  TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: const Size(0, 24),
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                    splashFactory: NoSplash.splashFactory,
+                                    overlayColor: Colors.transparent,
+                                    foregroundColor: const Color(0xFF606060),
+                                    textStyle: const TextStyle(
+                                      fontFamily: 'Pretendard Variable',
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ).copyWith(
+                                    backgroundColor:
+                                        WidgetStateProperty.resolveWith(
+                                          (states) =>
+                                              states.contains(
+                                                WidgetState.pressed,
+                                              )
+                                              ? const Color(0xFFE4E8EC)
+                                              : Colors.transparent,
+                                        ),
+                                  ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text('View detail'),
+                                  Icon(Icons.chevron_right, size: 20),
+                                ],
                               ),
-                            ),
-                            const Icon(
-                              Icons.chevron_right,
-                              size: 20,
-                              color: Color(0xFF606060),
                             ),
                           ],
                         ),
                         const SizedBox(height: 12),
                         NeedsAttentionCard(
+                          key: _attentionKey,
                           message: homeAttentionMessage,
                           onCheckUnit: () => context.go('/my-place'),
                         ),
