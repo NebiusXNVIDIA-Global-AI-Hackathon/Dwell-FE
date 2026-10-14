@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 
-import 'profile_avatar.dart';
+import 'profile_menu.dart';
 
 /// Home and Reports share geometry; system space is applied by the page once.
 class AppScreenHeader extends StatelessWidget {
@@ -9,9 +9,11 @@ class AppScreenHeader extends StatelessWidget {
     super.key,
     required this.title,
     this.webTopPadding = webTopGap,
+    this.onLogout,
   });
   final Widget title;
   final double webTopPadding;
+  final Future<void> Function()? onLogout;
   // Web has no native status-bar area. Reserve its design space here;
   // native pages already apply their real system inset outside this header.
   static const webTopGap = 50.0;
@@ -50,7 +52,7 @@ class AppScreenHeader extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              const ProfileAvatar(nickname: 'SJ', size: 42),
+              ProfileMenu(nickname: 'SJ', size: 42, onLogout: onLogout),
             ],
           ),
         ),
