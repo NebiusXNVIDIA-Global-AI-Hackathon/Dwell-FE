@@ -6,17 +6,21 @@ class CaseCreationBottom extends StatelessWidget {
     required this.enabled,
     required this.onNext,
     this.label = 'Next',
+    this.height = 56,
+    this.textStyle,
   });
 
   final bool enabled;
   final VoidCallback? onNext;
   final String label;
+  final double height;
+  final TextStyle? textStyle;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 56,
+      height: height,
       child: FilledButton(
         onPressed: enabled ? onNext : null,
         style: ButtonStyle(
@@ -43,11 +47,15 @@ class CaseCreationBottom extends StatelessWidget {
           shape: WidgetStatePropertyAll(
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
-          textStyle: const WidgetStatePropertyAll(
-            TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          textStyle: WidgetStatePropertyAll(
+            textStyle ??
+                const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
         ),
-        child: Text(label),
+        child: SizedBox(
+          width: double.infinity,
+          child: Text(label, textAlign: TextAlign.center),
+        ),
       ),
     );
   }

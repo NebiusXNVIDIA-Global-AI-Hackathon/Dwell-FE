@@ -1,3 +1,4 @@
+import 'package:dwell/features/cases/pages/evidence_guide_page.dart';
 import 'package:dwell/features/cases/pages/cases_page.dart';
 import 'package:dwell/features/cases/widgets/creation/case_area_card.dart';
 import 'package:dwell/features/cases/widgets/creation/case_option_card.dart';
@@ -60,7 +61,11 @@ void main() {
         findsOneWidget,
       );
       await h.next();
-      h.expectStep(4); // Evidence is intentionally not implemented yet.
+      expect(find.byType(EvidenceGuidePage), findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      h.expectStep(4);
+      expect(tester.widget<AffectedAreaStep>(h.step).selectedArea, 'Cabinet');
       expect(tester.takeException(), isNull);
     },
   );
@@ -285,19 +290,22 @@ void main() {
     },
   );
 
-  testWidgets(
-    'Entire Unit skips area selection and stops at the evidence TODO',
-    (tester) async {
-      final h = await CreationHarness.start(tester);
-      await h.toLocation();
-      await h.choose('Entire Unit');
-      h.expectNext(true);
-      expect(find.text("We'll skip Step 4 · Affected Area"), findsOneWidget);
-      await h.next();
-      h.expectStep(3);
-      expect(find.byType(AffectedAreaStep), findsNothing);
-    },
-  );
+  testWidgets('Entire Unit opens the guide and Back restores Step 3', (
+    tester,
+  ) async {
+    final h = await CreationHarness.start(tester);
+    await h.toLocation();
+    await h.choose('Entire Unit');
+    h.expectNext(true);
+    expect(find.text("We'll skip Step 4 · Affected Area"), findsOneWidget);
+    await h.next();
+    expect(find.byType(EvidenceGuidePage), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    h.expectStep(3);
+    expect(tester.widget<LocationStep>(h.step).selectedLocation, 'Entire Unit');
+    expect(find.byType(AffectedAreaStep), findsNothing);
+  });
 
   final hazards = <(String, String, SafetyNoticeType)>[
     ('Electricity', 'Exposed Wiring', SafetyNoticeType.electrical),

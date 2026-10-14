@@ -1,4 +1,10 @@
+import 'package:dwell/features/cases/models/evidence_model.dart';
+import 'package:dwell/features/cases/pages/evidence/evidence_audio_page.dart';
+import 'package:dwell/features/cases/pages/evidence/evidence_video_page.dart';
+import 'package:dwell/features/cases/services/evidence_library.dart';
+import 'package:dwell/features/cases/services/evidence_documents.dart';
 import 'package:dwell/app.dart';
+import 'package:dwell/features/cases/pages/evidence/evidence_camera_page.dart';
 import 'package:dwell/core/router.dart';
 import 'package:dwell/features/cases/pages/case_creation_page.dart';
 import 'package:dwell/features/cases/widgets/creation/case_creation_bottom.dart';
@@ -50,6 +56,11 @@ class CreationHarness {
     Size size = const Size(393, 844),
     double textScale = 1,
     bool direct = false,
+    EvidenceCameraLauncher? capturePhoto,
+    EvidenceLibraryPicker? pickLibrary,
+    EvidenceDocumentPicker? pickDocuments,
+    EvidenceVideoLauncher? recordVideo,
+    Future<EvidenceModel?> Function(BuildContext)? recordAudio,
   }) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = size;
@@ -58,7 +69,27 @@ class CreationHarness {
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetViewInsets);
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-    final container = ProviderContainer();
+    // The hardware boundary is mocked: existing flow tests cancel capture.
+    // Camera integration tests supply the real page with a fake camera.
+    final container = ProviderContainer(
+      overrides: [
+        evidenceDocumentPickerProvider.overrideWithValue(
+          pickDocuments ?? (_) async => const EvidenceDocumentResult([]),
+        ),
+        evidenceAudioLauncherProvider.overrideWithValue(
+          recordAudio ?? (_) async => null,
+        ),
+        evidenceVideoLauncherProvider.overrideWithValue(
+          recordVideo ?? (_) async => null,
+        ),
+        evidenceLibraryPickerProvider.overrideWithValue(
+          pickLibrary ?? () async => const EvidenceLibraryResult([]),
+        ),
+        evidenceCameraLauncherProvider.overrideWithValue(
+          capturePhoto ?? (_) async => null,
+        ),
+      ],
+    );
     final router = container.read(routerProvider);
     router.go(direct ? '/cases/new' : '/cases');
     addTearDown(() async {
@@ -85,7 +116,18 @@ class CreationHarness {
     expect(target, findsOneWidget);
     await tester.ensureVisible(target);
     await tester.pump();
-    await tester.tap(target);
+    final thumbnail = find.ancestor(
+      of: target,
+      matching: find.byKey(const ValueKey('evidence-thumbnails')),
+    );
+    if (thumbnail.evaluate().isNotEmpty && tester.widget(target) is InkWell) {
+      // The upper-right 48px belongs to deletion, including the tile center.
+      await tester.tapAt(
+        tester.getRect(target).bottomLeft + const Offset(12, -12),
+      );
+    } else {
+      await tester.tap(target);
+    }
     await tester.pump();
     // Route/dialog completion can schedule another frame after endOfFrame.
     if (tester.binding.hasScheduledFrame) await tester.pumpAndSettle();

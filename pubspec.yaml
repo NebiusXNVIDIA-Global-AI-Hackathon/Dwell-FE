@@ -48,8 +48,18 @@ dependencies:
   fquery_core: ^3.1.0
   material_ui: ^1.5.0
   lucide_icons_flutter: ^3.1.22
+  camera: ^0.12.1
+  image_picker: 1.2.4
+  video_player: ^2.14.1
+  path_provider: ^2.1.6
+  video_thumbnail_gen: ^0.6.3
+  record: ^7.1.2
+  web: ^1.1.1
   url_launcher: ^6.3.3
   flutter_slidable: ^4.0.3
+  crypto: 3.0.7
+  archive: 4.0.9
+  file_picker: 13.1.0
 
 dev_dependencies:
   flutter_test:
@@ -61,6 +71,8 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  video_player_platform_interface: 6.9.0
+  video_player_web: 2.4.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -77,6 +89,7 @@ flutter:
   # 새 하위 폴더 만들면 한 줄 추가. 들여쓰기는 공백 2칸
   assets:
     - assets/images/
+    - assets/images/evidence_guide/
     - assets/icons/
     - assets/icons/bottom_nav/
     - assets/icons/case/

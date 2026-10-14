@@ -1,7 +1,24 @@
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../controllers/evidence_controller.dart';
+import '../controllers/mock_evidence_check_controller.dart';
+import '../services/evidence_library.dart';
+import '../services/evidence_documents.dart';
+import 'evidence/evidence_documents_page.dart';
+import 'evidence/evidence_camera_page.dart';
+import 'evidence/evidence_video_page.dart';
+import 'evidence/evidence_audio_page.dart';
+import '../services/evidence_video_diagnostics.dart';
+import '../models/evidence_model.dart';
+
 import 'package:material_ui/material_ui.dart';
 
 import '../controllers/case_creation_controller.dart';
+import 'evidence_guide_page.dart';
+import '../widgets/creation/steps/evidence_step.dart';
+import '../widgets/creation/evidence/evidence_add_sheet.dart';
+import '../widgets/creation/evidence/evidence_check_button.dart';
 import '../widgets/creation/steps/affected_area_step.dart';
 import '../widgets/creation/case_creation_bottom.dart';
 import '../widgets/creation/case_creation_header.dart';
@@ -11,15 +28,41 @@ import '../widgets/creation/steps/issue_type_step.dart';
 import '../widgets/creation/steps/location_step.dart';
 import '../widgets/creation/steps/specific_issue_step.dart';
 
-class CaseCreationPage extends StatefulWidget {
+class CaseCreationPage extends ConsumerStatefulWidget {
   const CaseCreationPage({super.key});
 
   @override
-  State<CaseCreationPage> createState() => _CaseCreationPageState();
+  ConsumerState<CaseCreationPage> createState() => _CaseCreationPageState();
 }
 
-class _CaseCreationPageState extends State<CaseCreationPage> {
+class _CaseCreationPageState extends ConsumerState<CaseCreationPage>
+    with WidgetsBindingObserver {
   final _controller = CaseCreationController();
+  final _evidence = EvidenceController();
+  late final MockEvidenceCheckController _mockCheck;
+  @override
+  void initState() {
+    super.initState();
+    _mockCheck = MockEvidenceCheckController(_evidence);
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) _mockCheck.cancelChecking();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _mockCheck.dispose();
+    for (final item in _evidence.items) {
+      if (item.type == EvidenceType.photo) MemoryImage(item.bytes).evict();
+    }
+    _evidence.dispose();
+    super.dispose();
+  }
+
   int get _currentStep => _controller.currentStep;
   String? get _selectedIssueType => _controller.draft.issueType;
   String? get _selectedSpecificIssue => _controller.draft.specificIssue;
@@ -27,7 +70,13 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
   String get _issueSummary => _controller.issueSummary;
   bool get _canGoNext => _controller.canGoNext;
 
-  // 모달 중복 표시 방지
+  // 안내 페이지 및 모달 중복 표시 방지
+  bool _isEvidenceGuideOpen = false;
+  bool _isEvidenceSheetOpen = false;
+  bool _isLibraryPickerOpen = false;
+  bool _isDocumentPickerOpen = false;
+  bool _isVideoPageOpen = false;
+  bool _isAudioPageOpen = false;
   bool _isSafetyNoticeOpen = false;
   bool _isExitNoticeOpen = false;
 
@@ -45,6 +94,8 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
         return 'Issue Location';
       case 4:
         return 'Affected Area';
+      case 5:
+        return 'Add Evidence';
       default:
         return 'New Case';
     }
@@ -148,6 +199,7 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
     setState(() {
       _allowLeave = true;
     });
+    _mockCheck.cancelChecking();
 
     // 종료 허용 상태가 화면에 반영된 뒤 이동
     await WidgetsBinding.instance.endOfFrame;
@@ -163,8 +215,198 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
     }
   }
 
+  Future<void> _showEvidenceSheet() async {
+    if (_isEvidenceSheetOpen ||
+        _isLibraryPickerOpen ||
+        _isDocumentPickerOpen ||
+        _isVideoPageOpen ||
+        _isAudioPageOpen ||
+        _isExitNoticeOpen ||
+        _allowLeave) {
+      return;
+    }
+    setState(() => _isEvidenceSheetOpen = true);
+    _mockCheck.cancelChecking();
+    try {
+      final source = await showModalBottomSheet<EvidenceSource>(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        backgroundColor: Colors.white,
+        barrierColor: Colors.black.withValues(alpha: 0.2),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+        ),
+        builder: (context) => EvidenceAddSheet(
+          onSelected: (source) {
+            if (ModalRoute.of(context)?.isCurrent != true) return;
+            Navigator.of(context).pop(source);
+          },
+        ),
+      );
+      if (!mounted) return;
+      setState(() => _isEvidenceSheetOpen = false);
+      if (source == EvidenceSource.photo) {
+        final photo = await ref.read(evidenceCameraLauncherProvider)(context);
+        if (photo != null) {
+          if (mounted && !_allowLeave) {
+            _evidence.add(photo);
+          } else {
+            await photo.dispose();
+          }
+        }
+      } else if (source == EvidenceSource.library) {
+        await _pickLibraryPhotos();
+      } else if (source == EvidenceSource.video) {
+        await _recordVideo();
+      } else if (source == EvidenceSource.audio) {
+        await _recordAudio();
+      } else if (source == EvidenceSource.document) {
+        await _pickDocuments();
+      }
+    } finally {
+      if (mounted) setState(() => _isEvidenceSheetOpen = false);
+    }
+  }
+
+  Future<void> _recordAudio() async {
+    if (_isAudioPageOpen || _allowLeave) return;
+    _isAudioPageOpen = true;
+    try {
+      final audio = await ref.read(evidenceAudioLauncherProvider)(context);
+      if (audio == null) return;
+      if (mounted && !_allowLeave) {
+        _evidence.add(audio);
+      } else {
+        await audio.dispose();
+      }
+    } catch (_) {
+      if (mounted && !_allowLeave) {
+        _showLibraryMessage('Unable to record audio. Please try again.');
+      }
+    } finally {
+      _isAudioPageOpen = false;
+    }
+  }
+
+  Future<void> _pickDocuments() async {
+    if (_isDocumentPickerOpen || _allowLeave) return;
+    _isDocumentPickerOpen = true;
+    try {
+      final result = await Navigator.of(context).push<List<EvidenceModel>>(
+        MaterialPageRoute(
+          builder: (_) => EvidenceDocumentsPage(
+            existing: _evidence.items
+                .map((item) => item.documentFingerprint)
+                .whereType<String>()
+                .toSet(),
+          ),
+        ),
+      );
+      if (result == null) return;
+      if (!mounted || _allowLeave) {
+        for (final item in result) {
+          await item.dispose();
+        }
+        return;
+      }
+      for (final item in result) {
+        _evidence.add(item);
+      }
+    } catch (error) {
+      if (mounted && !_allowLeave) {
+        _showLibraryMessage(evidenceDocumentPickerError(error));
+      }
+    } finally {
+      _isDocumentPickerOpen = false;
+    }
+  }
+
+  Future<void> _recordVideo() async {
+    if (_isVideoPageOpen || _allowLeave) return;
+    _isVideoPageOpen = true;
+    try {
+      logRecordVideo('open recording route');
+      final video = await ref.read(evidenceVideoLauncherProvider)(context);
+      logRecordVideo('route result=${video?.id}');
+      if (video == null) return;
+      if (mounted && !_allowLeave) {
+        _evidence.add(video);
+        logRecordVideo(
+          'EvidenceController added video count=${_evidence.items.length}',
+        );
+      } else {
+        await video.dispose();
+      }
+    } catch (_) {
+      if (mounted && !_allowLeave) {
+        _showLibraryMessage('Unable to record the video. Please try again.');
+      }
+    } finally {
+      _isVideoPageOpen = false;
+    }
+  }
+
+  Future<void> _pickLibraryPhotos() async {
+    if (_isLibraryPickerOpen || _allowLeave) return;
+    _isLibraryPickerOpen = true;
+    try {
+      final result = await ref.read(evidenceLibraryPickerProvider)();
+      if (!mounted || _allowLeave) {
+        for (final photo in result.photos) {
+          await photo.dispose();
+        }
+        return;
+      }
+      for (final photo in result.photos) {
+        _evidence.add(photo);
+      }
+      if (result.failedCount > 0) {
+        _showLibraryMessage(
+          'Some photos could not be added. Choose readable JPEG, PNG or WebP photos.',
+        );
+      }
+    } catch (error) {
+      if (mounted && !_allowLeave) {
+        _showLibraryMessage(evidenceLibraryErrorMessage(error));
+      }
+    } finally {
+      _isLibraryPickerOpen = false;
+    }
+  }
+
+  void _showLibraryMessage(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Future<void> _handleNext() async {
+    if (_currentStep == 5) {
+      if (_allowLeave ||
+          _isExitNoticeOpen ||
+          _isEvidenceSheetOpen ||
+          _isDocumentPickerOpen ||
+          _isVideoPageOpen ||
+          _isAudioPageOpen ||
+          ModalRoute.of(context)?.isCurrent != true ||
+          !_mockCheck.buttonEnabled) {
+        return;
+      }
+      if (_mockCheck.status == MockEvidenceCheckStatus.completed) {
+        _showLibraryMessage(
+          'Coming soon: the next step is not available yet. This check is a UI demo.',
+        );
+      } else {
+        _mockCheck.start();
+      }
+      return;
+    }
     if (!_canGoNext ||
+        _isEvidenceGuideOpen ||
         _isSafetyNoticeOpen ||
         _isExitNoticeOpen ||
         _allowLeave) {
@@ -172,6 +414,21 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
     }
 
     FocusScope.of(context).unfocus();
+
+    if (_controller.canOpenEvidenceGuide) {
+      _isEvidenceGuideOpen = true;
+      try {
+        final route = MaterialPageRoute<bool>(
+          builder: (_) => const EvidenceGuidePage(),
+        );
+        final start = await Navigator.of(context).push<bool>(route);
+        if (mounted && start == true) setState(_controller.beginEvidence);
+        await route.completed;
+      } finally {
+        _isEvidenceGuideOpen = false;
+      }
+      return;
+    }
 
     final previousStep = _currentStep;
     setState(_controller.next);
@@ -256,6 +513,13 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
           onOtherChanged: _handleOtherAreaChanged,
         );
 
+      case 5:
+        return EvidenceStep(
+          onAdd: _showEvidenceSheet,
+          isSheetOpen: _isEvidenceSheetOpen,
+          evidence: _evidence,
+          mockCheck: _mockCheck,
+        );
       default:
         return const SizedBox.shrink();
     }
@@ -275,13 +539,8 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
         backgroundColor: const Color(0xFFF7F7F7),
         body: SafeArea(
           child: Padding(
-            // Leave room for scrollable inputs when the keyboard is open.
-            padding: EdgeInsets.fromLTRB(
-              20,
-              MediaQuery.viewInsetsOf(context).bottom > 0 ? 20 : 60,
-              20,
-              24,
-            ),
+            // SafeArea handles system insets; keep the design gap consistent.
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -290,6 +549,10 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
                   title: _stepTitle,
                   currentStep: _currentStep,
                   totalSteps: CaseCreationController.totalSteps,
+                  stackStepDetails:
+                      _currentStep == 5 &&
+                      MediaQuery.textScalerOf(context).scale(24) > 32 &&
+                      MediaQuery.sizeOf(context).width < 400,
                   onBack: _handleBack,
                 ),
                 const SizedBox(height: 20),
@@ -299,7 +562,18 @@ class _CaseCreationPageState extends State<CaseCreationPage> {
                 const SizedBox(height: 16),
 
                 // 하단 Next 버튼
-                CaseCreationBottom(enabled: _canGoNext, onNext: _handleNext),
+                if (_currentStep == 5)
+                  EvidenceCheckButton(
+                    controller: _mockCheck,
+                    onPressed: _handleNext,
+                    active: !_allowLeave,
+                  )
+                else
+                  CaseCreationBottom(
+                    enabled: _canGoNext,
+                    onNext: _handleNext,
+                    label: _currentStep == 5 ? 'Check' : 'Next',
+                  ),
               ],
             ),
           ),
