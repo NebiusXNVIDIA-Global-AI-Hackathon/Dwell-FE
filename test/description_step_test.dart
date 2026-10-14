@@ -137,6 +137,60 @@ void main() {
   );
 
   testWidgets(
+    'Skip underlines only while pressed, never on hover or focus, without overlays',
+    (tester) async {
+      await openDescription(tester);
+      final skip = find.byKey(const ValueKey('description-skip'));
+      final label = find.text('skip this step');
+      await tester.ensureVisible(skip);
+      await tester.pumpAndSettle();
+      TextStyle labelStyle() =>
+          DefaultTextStyle.of(tester.element(label)).style;
+      expect(labelStyle().decoration, TextDecoration.none);
+      expect(labelStyle().color, const Color(0xFF5E5E5E));
+      expect(labelStyle().fontWeight, FontWeight.w600);
+      final style = tester.widget<TextButton>(skip).style!;
+      for (final states in [
+        <WidgetState>{},
+        {WidgetState.hovered},
+        {WidgetState.pressed},
+      ]) {
+        expect(style.backgroundColor!.resolve(states), Colors.transparent);
+        expect(style.overlayColor!.resolve(states), Colors.transparent);
+      }
+      expect(style.splashFactory, NoSplash.splashFactory);
+      expect(
+        style.textStyle!.resolve({WidgetState.focused})!.decoration,
+        TextDecoration.none,
+      );
+      final mouse = await tester.createGesture(
+        kind: ui.PointerDeviceKind.mouse,
+      );
+      await mouse.addPointer(location: Offset.zero);
+      await mouse.moveTo(tester.getCenter(skip));
+      await tester.pumpAndSettle();
+      expect(labelStyle().decoration, TextDecoration.none);
+      await mouse.down(tester.getCenter(skip));
+      await tester.pumpAndSettle();
+      expect(labelStyle().decoration, TextDecoration.underline);
+      await mouse.up();
+      await tester.pumpAndSettle();
+      expect(labelStyle().decoration, TextDecoration.none);
+      await mouse.moveTo(Offset.zero);
+      await tester.pumpAndSettle();
+      expect(labelStyle().decoration, TextDecoration.none);
+      await mouse.removePointer();
+      final touch = await tester.startGesture(tester.getCenter(skip));
+      await tester.pumpAndSettle();
+      expect(labelStyle().decoration, TextDecoration.underline);
+      await touch.up();
+      await tester.pumpAndSettle();
+      expect(labelStyle().decoration, TextDecoration.none);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'Shared completion callback preserves Submit and omits Skip data; blocks duplicate calls',
     (tester) async {
       final received = <CaseDraftView>[];

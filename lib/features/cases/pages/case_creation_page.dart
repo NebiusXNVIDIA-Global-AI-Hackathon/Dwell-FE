@@ -618,24 +618,36 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage>
                         enabled: _controller.canSubmit && !_isCompleting,
                         onNext: () => _completeDescription(skip: false),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 2),
                       TextButton(
                         key: const ValueKey('description-skip'),
                         onPressed: _isCompleting
                             ? null
                             : () => _completeDescription(skip: true),
-                        style: TextButton.styleFrom(
-                          foregroundColor: const Color(0xFF5E5E5E),
-                          minimumSize: const Size(0, 44),
-                          padding: EdgeInsets.zero,
-                          textStyle: const TextStyle(
-                            fontFamily: 'Pretendard Variable',
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            height: 1.25,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
+                        style:
+                            TextButton.styleFrom(
+                              foregroundColor: const Color(0xFF5E5E5E),
+                              backgroundColor: Colors.transparent,
+                              overlayColor: Colors.transparent,
+                              splashFactory: NoSplash.splashFactory,
+                              minimumSize: const Size(0, 44),
+                              padding: EdgeInsets.zero,
+                            ).copyWith(
+                              textStyle: WidgetStateProperty.resolveWith((
+                                states,
+                              ) {
+                                return TextStyle(
+                                  fontFamily: 'Pretendard Variable',
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.25,
+                                  decoration:
+                                      states.contains(WidgetState.pressed)
+                                      ? TextDecoration.underline
+                                      : TextDecoration.none,
+                                );
+                              }),
+                            ),
                         child: const Text('skip this step'),
                       ),
                     ],
