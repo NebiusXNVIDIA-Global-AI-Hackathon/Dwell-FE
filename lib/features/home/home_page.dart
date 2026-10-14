@@ -41,7 +41,7 @@ class _HomePageState extends State<HomePage> {
           child: Column(
             children: [
               AppScreenHeader(
-                webTopPadding: 70,
+                webTopPadding: 40,
                 title: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
