@@ -26,7 +26,7 @@ Future<CreationHarness> openDescription(
     tester,
     direct: true,
     size: size,
-    textScale: 1,
+    textScale: scale,
     onComplete: useAnalysisRoute ? null : onComplete ?? (_, _) async {},
   );
   await h.toArea();

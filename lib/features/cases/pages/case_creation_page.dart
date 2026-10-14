@@ -689,7 +689,6 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage>
                         currentStep: _currentStep,
                         totalSteps: CaseCreationController.totalSteps,
                         stackStepDetails:
-                            _currentStep == 5 &&
                             MediaQuery.textScalerOf(context).scale(24) > 32 &&
                             MediaQuery.sizeOf(context).width < 400,
                         onBack: _handleBack,
