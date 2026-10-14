@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:dwell/core/widgets/profile_avatar.dart';
+import 'package:dwell/core/widgets/app_screen_header.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -172,9 +172,6 @@ class _CasesPageState extends State<CasesPage> {
     final isLight = colors.brightness == Brightness.light;
     final textColor = isLight ? const Color(0xFF243B53) : colors.onSurface;
 
-    final topInset = MediaQuery.paddingOf(context).top;
-    final headerTopPadding = (77.0 - topInset).clamp(0.0, 77.0).toDouble();
-
     // 탭 숫자는 검색·필터 결과로 계산한다.
     final matchingCases = _matchingCases;
 
@@ -243,220 +240,213 @@ class _CasesPageState extends State<CasesPage> {
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // 헤더
-            Padding(
-              padding: EdgeInsets.fromLTRB(24, headerTopPadding, 24, 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Flexible(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Cases',
-                        style: TextStyle(
-                          color: textColor,
-                          fontSize: 40,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
+      body: Padding(
+        padding: EdgeInsets.only(top: AppScreenHeader.systemTopInset(context)),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            children: [
+              // 헤더
+              AppScreenHeader(
+                title: Text(
+                  'Cases',
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 40,
+                    height: 1.2,
+                    fontWeight: FontWeight.w800,
                   ),
-                  const ProfileAvatar(nickname: 'SJ'),
-                ],
+                ),
               ),
-            ),
+              const SizedBox(height: 16),
 
-            // 검색 및 필터 버튼
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: CaseSearchField(
-                      onChanged: (value) {
-                        setState(() {
-                          _searchQuery = value;
-                        });
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  SizedBox(
-                    width: 48,
-                    height: 56,
-                    child: IconButton(
-                      tooltip: 'Filter Cases',
-                      onPressed: _openFilters,
-                      style: ButtonStyle(
-                        fixedSize: const WidgetStatePropertyAll(Size(48, 56)),
-                        visualDensity: VisualDensity.standard,
-                        backgroundColor: WidgetStateProperty.resolveWith<Color>(
-                          (states) {
-                            if (states.contains(WidgetState.pressed)) {
-                              return isLight
-                                  ? const Color(0xFFC0C6CC)
-                                  : colors.surfaceContainerHigh;
-                            }
-
-                            return isLight
-                                ? const Color(0xFFE4E8EC)
-                                : colors.surfaceContainerHighest;
-                          },
-                        ),
-                        foregroundColor: WidgetStatePropertyAll(textColor),
-                        overlayColor: const WidgetStatePropertyAll(
-                          Colors.transparent,
-                        ),
-                        shape: WidgetStatePropertyAll(
-                          RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                      ),
-                      icon: Icon(
-                        LucideIcons.funnel,
-                        color: textColor,
-                        size: 28,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // 상태 탭
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: CaseStatusTabs(
-                cases: matchingCases,
-                selectedStatus: _selectedStatus,
-                onChanged: (status) {
-                  setState(() {
-                    if (_selectedStatus != status) _toastNotice = null;
-                    _selectedStatus = status;
-                  });
-                },
-              ),
-            ),
-
-            // 적용된 필터
-            if (_appliedFilters.hasSelection)
+              // 검색 및 필터 버튼
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: CaseFilterTags(
-                  filters: _appliedFilters,
-                  onRemove: _removeFilter,
-                  onReset: _resetFilters,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: CaseSearchField(
+                        onChanged: (value) {
+                          setState(() {
+                            _searchQuery = value;
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      width: 48,
+                      height: 56,
+                      child: IconButton(
+                        tooltip: 'Filter Cases',
+                        onPressed: _openFilters,
+                        style: ButtonStyle(
+                          fixedSize: const WidgetStatePropertyAll(Size(48, 56)),
+                          visualDensity: VisualDensity.standard,
+                          backgroundColor:
+                              WidgetStateProperty.resolveWith<Color>((states) {
+                                if (states.contains(WidgetState.pressed)) {
+                                  return isLight
+                                      ? const Color(0xFFC0C6CC)
+                                      : colors.surfaceContainerHigh;
+                                }
+
+                                return isLight
+                                    ? const Color(0xFFE4E8EC)
+                                    : colors.surfaceContainerHighest;
+                              }),
+                          foregroundColor: WidgetStatePropertyAll(textColor),
+                          overlayColor: const WidgetStatePropertyAll(
+                            Colors.transparent,
+                          ),
+                          shape: WidgetStatePropertyAll(
+                            RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                        icon: Icon(
+                          LucideIcons.funnel,
+                          color: textColor,
+                          size: 28,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
 
-            // 정렬 메뉴
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: CaseSortMenu(
-                  selectedOrder: _selectedSortOrder,
-                  onChanged: (order) {
+              const SizedBox(height: 12),
+
+              // 상태 탭
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: CaseStatusTabs(
+                  cases: matchingCases,
+                  selectedStatus: _selectedStatus,
+                  onChanged: (status) {
                     setState(() {
-                      _selectedSortOrder = order;
+                      if (_selectedStatus != status) _toastNotice = null;
+                      _selectedStatus = status;
                     });
                   },
                 ),
               ),
-            ),
 
-            // 카드 목록 또는 빈 상태
-            Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) => Stack(
-                  fit: StackFit.expand,
-                  clipBehavior: Clip.none,
-                  children: [
-                    visibleCases.isEmpty
-                        ? Align(
-                            alignment: const Alignment(0, -0.2),
-                            child: Padding(
-                              padding: const EdgeInsets.all(24),
-                              child: Text(
-                                _emptyMessage(matchingCases),
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: colors.onSurfaceVariant,
-                                  fontSize: 14,
+              // 적용된 필터
+              if (_appliedFilters.hasSelection)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: CaseFilterTags(
+                    filters: _appliedFilters,
+                    onRemove: _removeFilter,
+                    onReset: _resetFilters,
+                  ),
+                ),
+
+              // 정렬 메뉴
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: CaseSortMenu(
+                    selectedOrder: _selectedSortOrder,
+                    onChanged: (order) {
+                      setState(() {
+                        _selectedSortOrder = order;
+                      });
+                    },
+                  ),
+                ),
+              ),
+
+              // 카드 목록 또는 빈 상태
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) => Stack(
+                    fit: StackFit.expand,
+                    clipBehavior: Clip.none,
+                    children: [
+                      visibleCases.isEmpty
+                          ? Align(
+                              alignment: const Alignment(0, -0.2),
+                              child: Padding(
+                                padding: const EdgeInsets.all(24),
+                                child: Text(
+                                  _emptyMessage(matchingCases),
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: colors.onSurfaceVariant,
+                                    fontSize: 14,
+                                  ),
                                 ),
                               ),
-                            ),
-                          )
-                        : SingleChildScrollView(
-                            padding: const EdgeInsets.all(16),
-                            child: LayoutBuilder(
-                              builder: (context, constraints) {
-                                final columns =
-                                    (constraints.maxWidth - 16) / 3 < 114
-                                    ? 2
-                                    : 3;
-                                final cardWidth =
-                                    (constraints.maxWidth - 8 * (columns - 1)) /
-                                    columns;
+                            )
+                          : SingleChildScrollView(
+                              padding: const EdgeInsets.all(16),
+                              child: LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final columns =
+                                      (constraints.maxWidth - 16) / 3 < 114
+                                      ? 2
+                                      : 3;
+                                  final cardWidth =
+                                      (constraints.maxWidth -
+                                          8 * (columns - 1)) /
+                                      columns;
 
-                                return Align(
-                                  alignment: Alignment.topLeft,
-                                  child: Wrap(
-                                    spacing: 8,
-                                    runSpacing: 16,
-                                    children: [
-                                      for (final item in visibleCases)
-                                        SizedBox(
-                                          width: cardWidth,
-                                          child: CaseCard(
-                                            key: ValueKey(item.id),
-                                            caseItem: item,
-                                            isSelected:
-                                                _selectedCaseId == item.id,
-                                            onTap: () {
-                                              setState(() {
-                                                _selectedCaseId = item.id;
-                                              });
-                                            },
+                                  return Align(
+                                    alignment: Alignment.topLeft,
+                                    child: Wrap(
+                                      spacing: 8,
+                                      runSpacing: 16,
+                                      children: [
+                                        for (final item in visibleCases)
+                                          SizedBox(
+                                            width: cardWidth,
+                                            child: CaseCard(
+                                              key: ValueKey(item.id),
+                                              caseItem: item,
+                                              isSelected:
+                                                  _selectedCaseId == item.id,
+                                              onTap: () {
+                                                setState(() {
+                                                  _selectedCaseId = item.id;
+                                                });
+                                              },
+                                            ),
                                           ),
-                                        ),
-                                    ],
-                                  ),
-                                );
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                      if (_toastNotice case final notice?)
+                        Positioned(
+                          top: _toastTop(context, constraints),
+                          left: 16,
+                          right: 16,
+                          child: Align(
+                            alignment: Alignment.topCenter,
+                            child: CaseCreationToast(
+                              key: ObjectKey(notice),
+                              message: notice.message,
+                              onDismissed: () {
+                                if (mounted && _toastNotice == notice) {
+                                  setState(() => _toastNotice = null);
+                                }
                               },
                             ),
                           ),
-                    if (_toastNotice case final notice?)
-                      Positioned(
-                        top: _toastTop(context, constraints),
-                        left: 16,
-                        right: 16,
-                        child: Align(
-                          alignment: Alignment.topCenter,
-                          child: CaseCreationToast(
-                            key: ObjectKey(notice),
-                            message: notice.message,
-                            onDismissed: () {
-                              if (mounted && _toastNotice == notice) {
-                                setState(() => _toastNotice = null);
-                              }
-                            },
-                          ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

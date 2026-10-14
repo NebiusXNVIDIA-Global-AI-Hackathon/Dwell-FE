@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
 
 import '../controllers/evidence_controller.dart';
 import '../controllers/mock_evidence_check_controller.dart';
@@ -569,6 +570,7 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage>
   }
 
   Widget _buildDescription() => SafeArea(
+    top: !kIsWeb,
     child: LayoutBuilder(
       builder: (context, constraints) => SingleChildScrollView(
         key: const ValueKey('description-scroll'),
@@ -576,7 +578,7 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage>
         child: ConstrainedBox(
           constraints: BoxConstraints(minHeight: constraints.maxHeight),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+            padding: const EdgeInsets.fromLTRB(20, kIsWeb ? 40 : 20, 20, 24),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -677,9 +679,10 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage>
         body: _currentStep == 6
             ? _buildDescription()
             : SafeArea(
+                top: !kIsWeb,
                 child: Padding(
-                  // SafeArea handles system insets; keep the design gap consistent.
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                  // Native keeps its SafeArea inset and 20px design gap.
+                  padding: const EdgeInsets.fromLTRB(20, kIsWeb ? 40 : 20, 20, 24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

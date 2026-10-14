@@ -4,12 +4,14 @@ class ProfileAvatar extends StatelessWidget {
   final String nickname;
   final double size;
   final VoidCallback? onTap;
+  final FocusNode? focusNode;
 
   const ProfileAvatar({
     super.key,
     required this.nickname,
     this.size = 40,
     this.onTap,
+    this.focusNode,
   });
 
   @override
@@ -23,6 +25,7 @@ class ProfileAvatar extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
+        focusNode: focusNode,
         customBorder: const CircleBorder(),
         child: SizedBox(
           width: size,

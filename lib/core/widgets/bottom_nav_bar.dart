@@ -6,10 +6,12 @@ class BottomNavBar extends StatelessWidget {
     super.key,
     required this.currentIndex,
     required this.onTap,
+    this.casesLabel = 'Reports',
   });
 
   final int currentIndex;
   final ValueChanged<int> onTap;
+  final String casesLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +32,7 @@ class BottomNavBar extends StatelessWidget {
         showUnselectedLabels: true,
         items: [
           _buildItem(label: 'My place', assetName: 'my_place'),
-          _buildItem(label: 'Reports', assetName: 'cases'),
+          _buildItem(label: casesLabel, assetName: 'cases'),
           _buildItem(label: 'Home', assetName: 'home'),
           _buildItem(label: 'Assistant', assetName: 'assistant'),
           _buildItem(label: 'My Page', assetName: 'my_page'),
