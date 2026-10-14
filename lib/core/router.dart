@@ -23,14 +23,18 @@ import 'layouts/main_layout.dart';
 // 화면 추가 시 여기 GoRoute 도 추가
 final routerProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
-    // 하단바 확인을 위해 홈에서 시작
-    initialLocation: '/home',
+    // Splash stays visible until the future Login flow is connected.
+    initialLocation: '/splash',
     debugLogDiagnostics: true,
     routes: [
-      GoRoute(path: '/', redirect: (context, state) => '/home'),
+      GoRoute(path: '/', redirect: (context, state) => '/splash'),
 
       // 하단바 없이 표시할 페이지
-      GoRoute(path: '/splash', builder: (context, state) => const SplashPage()),
+      GoRoute(
+        path: '/splash',
+        name: 'splash',
+        builder: (context, state) => const SplashPage(),
+      ),
       // 케이스 등록 페이지
       GoRoute(
         path: '/cases/new',

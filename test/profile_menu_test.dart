@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dwell/app.dart';
+import 'package:dwell/core/router.dart';
 
 import 'package:dwell/core/widgets/profile_avatar.dart';
 import 'package:dwell/core/widgets/profile_menu.dart';
@@ -309,9 +310,13 @@ void main() {
       addTearDown(tester.view.resetPadding);
       addTearDown(tester.view.resetViewPadding);
       // Capture outside MaterialApp so root-overlay menus/dialogs are included.
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(routerProvider).go('/home');
       await tester.pumpWidget(
-        const ProviderScope(
-          child: RepaintBoundary(
+        UncontrolledProviderScope(
+          container: container,
+          child: const RepaintBoundary(
             key: ValueKey('profile-preview'),
             child: DwellApp(),
           ),
