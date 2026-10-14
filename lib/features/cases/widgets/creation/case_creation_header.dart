@@ -7,9 +7,10 @@ class CaseCreationHeader extends StatelessWidget {
     required this.title,
     required this.currentStep,
     required this.onBack,
-    this.totalSteps = 7,
+    this.totalSteps = 6,
     this.showStepDetails = true,
     this.stackStepDetails = false,
+    this.backButtonSize = 33,
   }) : assert(totalSteps > 0),
        assert(currentStep >= 1 && currentStep <= totalSteps);
 
@@ -18,6 +19,7 @@ class CaseCreationHeader extends StatelessWidget {
   final int totalSteps;
   final bool showStepDetails;
   final bool stackStepDetails;
+  final double backButtonSize;
   final VoidCallback onBack;
 
   @override
@@ -37,10 +39,10 @@ class CaseCreationHeader extends StatelessWidget {
                     side: const BorderSide(color: Color(0xFFE3E3E3)),
                   ),
                   clipBehavior: Clip.antiAlias,
-                  child: const SizedBox(
-                    width: 33,
-                    height: 33,
-                    child: Center(
+                  child: SizedBox(
+                    width: backButtonSize,
+                    height: backButtonSize,
+                    child: const Center(
                       child: Icon(
                         LucideIcons.chevronLeft,
                         size: 20,

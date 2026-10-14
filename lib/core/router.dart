@@ -11,6 +11,13 @@ import '../features/assistant/pages/chat_page.dart';
 import '../features/cases/pages/cases_page.dart';
 import '../features/splash/splash_page.dart';
 import '../features/cases/pages/case_creation_page.dart';
+import '../features/cases/pages/analyzing_evidence_page.dart';
+import '../features/cases/models/evidence_analysis_input.dart';
+import '../features/cases/models/case_creation_result.dart';
+import '../features/cases/models/reports_creation_notice.dart';
+import '../features/cases/pages/case_created_page.dart';
+import '../features/cases/controllers/mock_evidence_check_controller.dart'
+    show mockEvidenceCheckPolicy;
 import 'layouts/main_layout.dart';
 
 // 화면 추가 시 여기 GoRoute 도 추가
@@ -28,7 +35,58 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/cases/new',
         name: 'case-creation',
-        builder: (context, state) => const CaseCreationPage(),
+        builder: (context, state) => CaseCreationPage(
+          onComplete: (draft, evidence) async {
+            await context.pushNamed<void>(
+              'case-analysis',
+              extra: EvidenceAnalysisInput(draft, evidence),
+            );
+          },
+        ),
+        // Nested route keeps the creation page (and its evidence owner) mounted.
+        routes: [
+          GoRoute(
+            path: 'analyzing',
+            name: 'case-analysis',
+            redirect: (context, state) =>
+                state.extra is EvidenceAnalysisInput &&
+                    (state.extra! as EvidenceAnalysisInput).isAvailable
+                ? null
+                : '/cases/new',
+            builder: (context, state) {
+              final input = state.extra! as EvidenceAnalysisInput;
+              var navigating = false;
+              return AnalyzingEvidencePage(
+                input: input,
+                onMockCompleted: () {
+                  if (navigating ||
+                      !context.mounted ||
+                      !mockEvidenceCheckPolicy.enabled) {
+                    return;
+                  }
+                  navigating = true;
+                  context.pushReplacementNamed(
+                    'case-created',
+                    extra: CaseCreationResult.demo(input),
+                  );
+                },
+              );
+            },
+          ),
+          GoRoute(
+            path: 'created',
+            name: 'case-created',
+            redirect: (_, state) =>
+                state.extra is CaseCreationResult &&
+                    (state.extra! as CaseCreationResult).input.isAvailable &&
+                    (!(state.extra! as CaseCreationResult).isDemo ||
+                        mockEvidenceCheckPolicy.enabled)
+                ? null
+                : '/cases/new',
+            builder: (_, state) =>
+                CaseCreatedPage(result: state.extra! as CaseCreationResult),
+          ),
+        ],
       ),
       // Bring in a case — 하단바 없음
       GoRoute(
@@ -65,7 +123,11 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/cases',
                 name: 'cases',
-                builder: (context, state) => const CasesPage(),
+                builder: (context, state) => CasesPage(
+                  creationNotice: state.extra is ReportsCreationNotice
+                      ? state.extra! as ReportsCreationNotice
+                      : null,
+                ),
               ),
             ],
           ),

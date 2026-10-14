@@ -158,8 +158,10 @@ void main() {
   const sizes = [
     Size(320, 568),
     Size(375, 667),
+    Size(390, 844),
     Size(393, 844),
     Size(430, 932),
+    Size(1280, 900),
   ];
   testWidgets(
     '393x844 scale 1 preserves baseline card geometry and selection size',
@@ -230,7 +232,7 @@ void main() {
   );
 
   for (final size in sizes) {
-    for (final scale in [1.0, 1.3, 1.5]) {
+    for (final scale in [1.0, 1.3, 1.5, 2.0]) {
       testWidgets(
         'Steps 1–4 at $size text scale $scale have readable labels and no overflow',
         (tester) async {

@@ -61,6 +61,7 @@ class CreationHarness {
     EvidenceDocumentPicker? pickDocuments,
     EvidenceVideoLauncher? recordVideo,
     Future<EvidenceModel?> Function(BuildContext)? recordAudio,
+    CaseCreationCompletion? onComplete,
   }) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = size;
@@ -73,6 +74,20 @@ class CreationHarness {
     // Camera integration tests supply the real page with a fake camera.
     final container = ProviderContainer(
       overrides: [
+        if (onComplete != null)
+          routerProvider.overrideWith((ref) {
+            final router = GoRouter(
+              initialLocation: '/cases/new',
+              routes: [
+                GoRoute(
+                  path: '/cases/new',
+                  builder: (_, _) => CaseCreationPage(onComplete: onComplete),
+                ),
+              ],
+            );
+            ref.onDispose(router.dispose);
+            return router;
+          }),
         evidenceDocumentPickerProvider.overrideWithValue(
           pickDocuments ?? (_) async => const EvidenceDocumentResult([]),
         ),
@@ -94,6 +109,7 @@ class CreationHarness {
     router.go(direct ? '/cases/new' : '/cases');
     addTearDown(() async {
       await tester.pumpWidget(const SizedBox.shrink());
+
       container.dispose();
     });
     await tester.pumpWidget(
@@ -165,15 +181,15 @@ class CreationHarness {
       find.descendant(of: page, matching: find.byType(CaseCreationHeader)),
     );
     expect(header.currentStep, number);
-    expect(header.totalSteps, 7);
+    expect(header.totalSteps, 6);
     expect(
-      find.descendant(of: page, matching: find.text('steps $number of 7')),
+      find.descendant(of: page, matching: find.text('steps $number of 6')),
       findsOneWidget,
     );
     final progress = tester.widget<LinearProgressIndicator>(
       find.descendant(of: page, matching: find.byType(LinearProgressIndicator)),
     );
-    expect(progress.value, closeTo(number / 7, 0.000001));
+    expect(progress.value, closeTo(number / 6, 0.000001));
   }
 
   Future<void> toLocation({

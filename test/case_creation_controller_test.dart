@@ -77,6 +77,6 @@ void main() {
     c.next();
     expect(c.currentStep, 3);
     expect(c.draft.affectedArea, isNull);
-    expect(CaseCreationController.totalSteps, 7);
+    expect(CaseCreationController.totalSteps, 6);
   });
 }

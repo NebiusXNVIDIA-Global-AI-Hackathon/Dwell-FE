@@ -284,7 +284,7 @@ void main() {
             .currentStep,
         5,
       );
-      expect(find.text('steps 5 of 7'), findsOneWidget);
+      expect(find.text('steps 5 of 6'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
