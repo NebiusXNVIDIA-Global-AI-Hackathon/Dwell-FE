@@ -8,7 +8,7 @@ import 'package:dwell/features/cases/models/case_draft.dart';
 import 'package:dwell/features/cases/models/evidence_analysis_input.dart';
 import 'package:dwell/features/cases/models/evidence_model.dart';
 import 'package:dwell/features/cases/pages/analyzing_evidence_page.dart';
-import 'package:dwell/features/cases/widgets/creation/analysis_progress_item.dart';
+import 'package:dwell/features/cases/pages/case_created_page.dart';
 import 'package:dwell/features/cases/widgets/creation/evidence_analysis_preview.dart';
 import 'package:dwell/features/cases/widgets/creation/evidence/evidence_audio_preview.dart';
 import 'package:dwell/features/cases/widgets/creation/evidence/evidence_video_preview.dart';
@@ -168,24 +168,25 @@ void main() {
           findsOneWidget,
         );
         expect(find.byKey(const ValueKey('analysis-thumbnails')), findsNothing);
-        await tester.pump(const Duration(seconds: 5));
-        await tester.pumpAndSettle();
-        final progress = tester
-            .widgetList<AnalysisProgressItem>(find.byType(AnalysisProgressItem))
-            .toList();
-        expect(progress.length, 5);
-        expect(
-          progress.every(
-            (item) => item.state == AnalysisProgressState.completed,
-          ),
-          true,
-        );
-        expect(find.byType(AnalyzingEvidencePage), findsOneWidget);
         await tester.binding.handlePopRoute();
         await tester.pumpAndSettle();
         h.expectStep(6);
         expect(h.input, ' Original description ');
         expect(photo.isDisposed, false);
+        await tester.ensureVisible(target);
+        await tester.tap(target);
+        await tester.pumpAndSettle();
+        final created = tester.widget<CaseCreatedPage>(
+          find.byType(CaseCreatedPage),
+        );
+        expect(created.result.isDemo, true);
+        expect(created.result.input.evidence.single, same(photo));
+        expect(
+          created.result.input.draft.description,
+          skip ? '' : ' Original description ',
+        );
+        expect(photo.isDisposed, false);
+        expect(find.byType(AnalyzingEvidencePage), findsNothing);
         h.router.go('/cases');
         await tester.pumpAndSettle();
         expect(photo.isDisposed, true);

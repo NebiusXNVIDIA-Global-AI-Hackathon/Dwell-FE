@@ -13,6 +13,10 @@ import '../features/splash/splash_page.dart';
 import '../features/cases/pages/case_creation_page.dart';
 import '../features/cases/pages/analyzing_evidence_page.dart';
 import '../features/cases/models/evidence_analysis_input.dart';
+import '../features/cases/models/case_creation_result.dart';
+import '../features/cases/pages/case_created_page.dart';
+import '../features/cases/controllers/mock_evidence_check_controller.dart'
+    show mockEvidenceCheckPolicy;
 import 'layouts/main_layout.dart';
 
 // 화면 추가 시 여기 GoRoute 도 추가
@@ -48,9 +52,38 @@ final routerProvider = Provider<GoRouter>((ref) {
                     (state.extra! as EvidenceAnalysisInput).isAvailable
                 ? null
                 : '/cases/new',
-            builder: (context, state) => AnalyzingEvidencePage(
-              input: state.extra! as EvidenceAnalysisInput,
-            ),
+            builder: (context, state) {
+              final input = state.extra! as EvidenceAnalysisInput;
+              var navigating = false;
+              return AnalyzingEvidencePage(
+                input: input,
+                onMockCompleted: () {
+                  if (navigating ||
+                      !context.mounted ||
+                      !mockEvidenceCheckPolicy.enabled) {
+                    return;
+                  }
+                  navigating = true;
+                  context.pushReplacementNamed(
+                    'case-created',
+                    extra: CaseCreationResult.demo(input),
+                  );
+                },
+              );
+            },
+          ),
+          GoRoute(
+            path: 'created',
+            name: 'case-created',
+            redirect: (_, state) =>
+                state.extra is CaseCreationResult &&
+                    (state.extra! as CaseCreationResult).input.isAvailable &&
+                    (!(state.extra! as CaseCreationResult).isDemo ||
+                        mockEvidenceCheckPolicy.enabled)
+                ? null
+                : '/cases/new',
+            builder: (_, state) =>
+                CaseCreatedPage(result: state.extra! as CaseCreationResult),
           ),
         ],
       ),
