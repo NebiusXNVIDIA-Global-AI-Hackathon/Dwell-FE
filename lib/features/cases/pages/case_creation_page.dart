@@ -11,6 +11,8 @@ import 'evidence/evidence_video_page.dart';
 import 'evidence/evidence_audio_page.dart';
 import '../services/evidence_video_diagnostics.dart';
 import '../models/evidence_model.dart';
+import '../models/case_draft.dart';
+import '../widgets/creation/steps/description_step.dart';
 
 import 'package:material_ui/material_ui.dart';
 
@@ -28,8 +30,17 @@ import '../widgets/creation/steps/issue_type_step.dart';
 import '../widgets/creation/steps/location_step.dart';
 import '../widgets/creation/steps/specific_issue_step.dart';
 
+/// Evidence remains owned by this page. A future flow must acquire its own
+/// resource leases before navigating away or disposing this page.
+typedef CaseCreationCompletion = Future<void> Function(
+  CaseDraftView draft,
+  List<EvidenceModel> evidence,
+);
+
 class CaseCreationPage extends ConsumerStatefulWidget {
-  const CaseCreationPage({super.key});
+  const CaseCreationPage({super.key, this.onComplete});
+
+  final CaseCreationCompletion? onComplete;
 
   @override
   ConsumerState<CaseCreationPage> createState() => _CaseCreationPageState();
@@ -82,6 +93,7 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage>
 
   // Leave 선택 후 페이지 종료 허용
   bool _allowLeave = false;
+  bool _isCompleting = false;
 
   // 단계별 헤더 제목
   String get _stepTitle {
@@ -96,6 +108,8 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage>
         return 'Affected Area';
       case 5:
         return 'Add Evidence';
+      case 6:
+        return 'Add a description';
       default:
         return 'New Case';
     }
@@ -157,7 +171,16 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage>
   }
 
   Future<void> _handleBack() async {
-    if (_isExitNoticeOpen || _isSafetyNoticeOpen || _allowLeave) {
+    if (_isExitNoticeOpen ||
+        _isSafetyNoticeOpen ||
+        _allowLeave ||
+        _isCompleting) {
+      return;
+    }
+
+    if (_currentStep == 6) {
+      FocusScope.of(context).unfocus();
+      setState(_controller.backToEvidence);
       return;
     }
 
@@ -397,9 +420,7 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage>
         return;
       }
       if (_mockCheck.status == MockEvidenceCheckStatus.completed) {
-        _showLibraryMessage(
-          'Coming soon: the next step is not available yet. This check is a UI demo.',
-        );
+        setState(_controller.beginDescription);
       } else {
         _mockCheck.start();
       }
@@ -525,6 +546,108 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage>
     }
   }
 
+  Future<void> _completeDescription({required bool skip}) async {
+    if (_isCompleting ||
+        _allowLeave ||
+        _currentStep != 6 ||
+        (!skip && !_controller.canSubmit)) {
+      return;
+    }
+    final callback = widget.onComplete;
+    if (callback == null) return; // Future analysis flow is not connected yet.
+    final draft = _controller.completeDescription(skip: skip);
+    final evidence = List<EvidenceModel>.unmodifiable(_evidence.items);
+    FocusScope.of(context).unfocus();
+    setState(() => _isCompleting = true);
+    try {
+      await callback(draft, evidence);
+    } catch (_) {
+      if (mounted) _showLibraryMessage('Unable to continue. Please try again.');
+    } finally {
+      if (mounted) setState(() => _isCompleting = false);
+    }
+  }
+
+  Widget _buildDescription() => SafeArea(
+    child: LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        key: const ValueKey('description-scroll'),
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    CaseCreationHeader(
+                      title: _stepTitle,
+                      currentStep: 6,
+                      backButtonSize: 28,
+                      totalSteps: CaseCreationController.totalSteps,
+                      stackStepDetails:
+                          MediaQuery.sizeOf(context).width < 370 ||
+                          MediaQuery.textScalerOf(context).scale(24) > 28,
+                      onBack: _handleBack,
+                    ),
+                    const SizedBox(height: 24),
+                    DescriptionStep(
+                      description: _controller.draft.description,
+                      enabled: !_isCompleting,
+                      onChanged: (value) =>
+                          setState(() => _controller.setDescription(value)),
+                    ),
+                  ],
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 40, 4, 0),
+                  child: Column(
+                    children: [
+                      CaseCreationBottom(
+                        label: 'Submit',
+                        textStyle: const TextStyle(
+                          fontFamily: 'Pretendard Variable',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          height: 1.25,
+                        ),
+                        enabled: _controller.canSubmit && !_isCompleting,
+                        onNext: () => _completeDescription(skip: false),
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        key: const ValueKey('description-skip'),
+                        onPressed: _isCompleting
+                            ? null
+                            : () => _completeDescription(skip: true),
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF5E5E5E),
+                          minimumSize: const Size(0, 44),
+                          padding: EdgeInsets.zero,
+                          textStyle: const TextStyle(
+                            fontFamily: 'Pretendard Variable',
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            height: 1.25,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                        child: const Text('skip this step'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
   @override
   Widget build(BuildContext context) {
     return PopScope<Object?>(
@@ -536,48 +659,52 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage>
         }
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF7F7F7),
-        body: SafeArea(
-          child: Padding(
-            // SafeArea handles system insets; keep the design gap consistent.
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 공통 헤더와 진행바
-                CaseCreationHeader(
-                  title: _stepTitle,
-                  currentStep: _currentStep,
-                  totalSteps: CaseCreationController.totalSteps,
-                  stackStepDetails:
-                      _currentStep == 5 &&
-                      MediaQuery.textScalerOf(context).scale(24) > 32 &&
-                      MediaQuery.sizeOf(context).width < 400,
-                  onBack: _handleBack,
-                ),
-                const SizedBox(height: 20),
+        backgroundColor: _currentStep == 6
+            ? const Color(0xFFF8F8F8)
+            : const Color(0xFFF7F7F7),
+        body: _currentStep == 6
+            ? _buildDescription()
+            : SafeArea(
+                child: Padding(
+                  // SafeArea handles system insets; keep the design gap consistent.
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 공통 헤더와 진행바
+                      CaseCreationHeader(
+                        title: _stepTitle,
+                        currentStep: _currentStep,
+                        totalSteps: CaseCreationController.totalSteps,
+                        stackStepDetails:
+                            _currentStep == 5 &&
+                            MediaQuery.textScalerOf(context).scale(24) > 32 &&
+                            MediaQuery.sizeOf(context).width < 400,
+                        onBack: _handleBack,
+                      ),
+                      const SizedBox(height: 20),
 
-                // 단계별 입력 화면
-                Expanded(child: _buildStep()),
-                const SizedBox(height: 16),
+                      // 단계별 입력 화면
+                      Expanded(child: _buildStep()),
+                      const SizedBox(height: 16),
 
-                // 하단 Next 버튼
-                if (_currentStep == 5)
-                  EvidenceCheckButton(
-                    controller: _mockCheck,
-                    onPressed: _handleNext,
-                    active: !_allowLeave,
-                  )
-                else
-                  CaseCreationBottom(
-                    enabled: _canGoNext,
-                    onNext: _handleNext,
-                    label: _currentStep == 5 ? 'Check' : 'Next',
+                      // 하단 Next 버튼
+                      if (_currentStep == 5)
+                        EvidenceCheckButton(
+                          controller: _mockCheck,
+                          onPressed: _handleNext,
+                          active: !_allowLeave,
+                        )
+                      else
+                        CaseCreationBottom(
+                          enabled: _canGoNext,
+                          onNext: _handleNext,
+                          label: _currentStep == 5 ? 'Check' : 'Next',
+                        ),
+                    ],
                   ),
-              ],
-            ),
-          ),
-        ),
+                ),
+              ),
       ),
     );
   }

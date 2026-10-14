@@ -184,52 +184,54 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
-  testWidgets(
-    'Check → Checking → Next is read-only, announces demo and keeps Step 5',
-    (tester) async {
-      final h = await checkPage(tester);
-      h.expectNext(false);
-      final step = tester.widget<EvidenceStep>(find.byType(EvidenceStep));
-      final photo = await checkPhoto(tester);
-      step.evidence!.add(photo);
-      await tester.pumpAndSettle();
-      h.expectNext(true);
-      expect(find.text('Demo check · No AI analysis'), findsNothing);
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('evidence-check-item-0')),
-      );
-      await tester.tap(find.byKey(const ValueKey('evidence-check-item-0')));
-      await tester.pump();
-      expect(step.mockCheck!.status, MockEvidenceCheckStatus.idle);
-      await tester.tap(h.nextButton);
-      await tester.pump();
-      h.expectNext(false);
-      expect(find.text('Checking your evidence...'), findsOneWidget);
-      expect(
-        find.byKey(const ValueKey('evidence-check-loading-0')),
-        findsOneWidget,
-      );
-      await tester.pump(mockEvidenceCheckInterval);
-      expect(step.mockCheck!.completedCount, 1);
-      await tester.pump(mockEvidenceCheckInterval);
-      expect(step.mockCheck!.completedCount, 2);
-      await tester.pump(mockEvidenceCheckInterval);
-      await tester.pump(evidenceCheckTransitionDuration);
-      expect(find.text('Next'), findsOneWidget);
-      h.expectNext(true);
-      for (var i = 0; i < 3; i++) {
-        expect(find.byKey(ValueKey('evidence-check-done-$i')), findsOneWidget);
-      }
-      await h.next();
-      h.expectStep(5);
-      expect(find.textContaining('Coming soon'), findsOneWidget);
-      step.evidence!.remove(photo.id);
-      await tester.pumpAndSettle();
-      h.expectNext(false);
-      expect(find.text('Check'), findsOneWidget);
-      expect(step.mockCheck!.completedCount, 0);
-    },
-  );
+  testWidgets('Check → Checking → Next is read-only and opens description', (
+    tester,
+  ) async {
+    final h = await checkPage(tester);
+    h.expectNext(false);
+    final step = tester.widget<EvidenceStep>(find.byType(EvidenceStep));
+    final photo = await checkPhoto(tester);
+    step.evidence!.add(photo);
+    await tester.pumpAndSettle();
+    h.expectNext(true);
+    expect(find.text('Demo check · No AI analysis'), findsNothing);
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('evidence-check-item-0')),
+    );
+    await tester.tap(find.byKey(const ValueKey('evidence-check-item-0')));
+    await tester.pump();
+    expect(step.mockCheck!.status, MockEvidenceCheckStatus.idle);
+    await tester.tap(h.nextButton);
+    await tester.pump();
+    h.expectNext(false);
+    expect(find.text('Checking your evidence...'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('evidence-check-loading-0')),
+      findsOneWidget,
+    );
+    await tester.pump(mockEvidenceCheckInterval);
+    expect(step.mockCheck!.completedCount, 1);
+    await tester.pump(mockEvidenceCheckInterval);
+    expect(step.mockCheck!.completedCount, 2);
+    await tester.pump(mockEvidenceCheckInterval);
+    await tester.pump(evidenceCheckTransitionDuration);
+    expect(find.text('Next'), findsOneWidget);
+    h.expectNext(true);
+    for (var i = 0; i < 3; i++) {
+      expect(find.byKey(ValueKey('evidence-check-done-$i')), findsOneWidget);
+    }
+    await h.next();
+    h.expectStep(6);
+    expect(photo.isDisposed, false);
+    expect(find.textContaining('Coming soon'), findsNothing);
+    await h.tap(h.headerBack);
+    h.expectStep(5);
+    step.evidence!.remove(photo.id);
+    await tester.pumpAndSettle();
+    h.expectNext(false);
+    expect(find.text('Check'), findsOneWidget);
+    expect(step.mockCheck!.completedCount, 0);
+  });
   testWidgets('Background and page disposal cancel an active demo safely', (
     tester,
   ) async {

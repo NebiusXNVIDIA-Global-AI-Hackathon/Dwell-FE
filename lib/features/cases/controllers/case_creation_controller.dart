@@ -1,3 +1,5 @@
+import 'package:flutter/widgets.dart';
+
 import '../data/case_creation_options.dart';
 import '../models/case_draft.dart';
 
@@ -8,7 +10,8 @@ class CaseCreationController {
   CaseDraftView get draft => _draftView;
   int _currentStep = 1;
   int get currentStep => _currentStep;
-  static const totalSteps = 7;
+  static const totalSteps = 6;
+  static const descriptionLimit = 500;
   String get issueSummary {
     final issue = CaseCreationOptions.requiresOtherInput(_draft.specificIssue)
         ? _draft.otherIssue.trim()
@@ -158,6 +161,29 @@ class CaseCreationController {
 
   void editIssue() => _currentStep = 1;
   void editLocation() => _currentStep = 3;
+
+  void beginDescription() {
+    if (_currentStep == 5) _currentStep = 6;
+  }
+
+  void backToEvidence() {
+    if (_currentStep == 6) _currentStep = 5;
+  }
+
+  void setDescription(String value) {
+    _draft.description = value.characters.take(descriptionLimit).toString();
+  }
+
+  bool get canSubmit =>
+      _currentStep == 6 && _draft.description.trim().isNotEmpty;
+
+  CaseDraftView completeDescription({required bool skip}) {
+    if (_currentStep != 6 || (!skip && !canSubmit)) {
+      throw StateError('Complete the description step first');
+    }
+    return draft.snapshot(omitDescription: skip);
+  }
+
   void next() {
     if (!canGoNext) return;
     switch (_currentStep) {

@@ -6,6 +6,7 @@ class CaseDraft {
   String otherIssue = '';
   String otherLocation = '';
   String otherAffectedArea = '';
+  String description = '';
 }
 
 /// Read-only live view; the controller keeps ownership of the mutable draft.
@@ -22,4 +23,18 @@ final class CaseDraftView {
   String get otherIssue => _draft.otherIssue;
   String get otherLocation => _draft.otherLocation;
   String get otherAffectedArea => _draft.otherAffectedArea;
+  String get description => _draft.description;
+
+  /// A detached submission view; later edits never change the submitted data.
+  CaseDraftView snapshot({bool omitDescription = false}) => CaseDraftView(
+    CaseDraft()
+      ..issueType = issueType
+      ..specificIssue = specificIssue
+      ..location = location
+      ..affectedArea = affectedArea
+      ..otherIssue = otherIssue
+      ..otherLocation = otherLocation
+      ..otherAffectedArea = otherAffectedArea
+      ..description = omitDescription ? '' : description,
+  );
 }
