@@ -11,6 +11,7 @@ import '../features/assistant/pages/chat_page.dart';
 import '../features/cases/pages/cases_page.dart';
 import '../features/splash/splash_page.dart';
 import '../features/auth/pages/login_page.dart';
+import '../features/auth/providers/session_provider.dart';
 import '../features/cases/pages/case_creation_page.dart';
 import '../features/cases/pages/analyzing_evidence_page.dart';
 import '../features/cases/models/evidence_analysis_input.dart';
@@ -22,14 +23,27 @@ import '../features/cases/controllers/mock_evidence_check_controller.dart'
 import 'layouts/main_layout.dart';
 
 // 화면 추가 시 여기 GoRoute 도 추가
-// Supply the real startup completion policy when it is defined. No timer yet.
+// Optional future startup/auth check, in addition to the minimum Splash duration.
 final splashCompletionProvider = Provider<Future<void>?>((ref) => null);
 
 final routerProvider = Provider<GoRouter>((ref) {
+  final refresh = ValueNotifier(ref.read(sessionProvider));
+  ref.listen(sessionProvider, (_, next) => refresh.value = next);
   final router = GoRouter(
-    // Splash stays visible until the startup completion signal is supplied.
     initialLocation: '/splash',
     debugLogDiagnostics: true,
+    refreshListenable: refresh,
+    redirect: (_, state) {
+      final mode = ref.read(sessionProvider);
+      final hasAccess =
+          mode == SessionMode.demo || mode == SessionMode.authenticated;
+      final path = state.uri.path;
+      final isPublic = path == '/' || path == '/splash' || path == '/login';
+      if (!hasAccess && !isPublic) return '/login';
+      // A previous browser entry for Login must not interrupt an active demo.
+      if (hasAccess && path == '/login') return '/home';
+      return null;
+    },
     routes: [
       GoRoute(path: '/', redirect: (context, state) => '/splash'),
 
@@ -39,13 +53,22 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'splash',
         builder: (context, state) => SplashPage(
           ready: ref.read(splashCompletionProvider),
-          onCompleted: () => context.goNamed('login'),
+          onCompleted: () => context.go(
+            ref.read(sessionProvider) == SessionMode.unauthenticated
+                ? '/login'
+                : '/home',
+          ),
         ),
       ),
       GoRoute(
         path: '/login',
         name: 'login',
-        builder: (context, state) => const LoginPage(),
+        builder: (context, state) => LoginPage(
+          onDemo: () async {
+            ref.read(sessionProvider.notifier).enterDemo();
+            // The refreshed route guard owns the single transition to Home.
+          },
+        ),
       ),
       // 케이스 등록 페이지
       GoRoute(
@@ -182,7 +205,10 @@ final routerProvider = Provider<GoRouter>((ref) {
     ),
   );
 
-  ref.onDispose(router.dispose);
+  ref.onDispose(() {
+    router.dispose();
+    refresh.dispose();
+  });
 
   return router;
 });

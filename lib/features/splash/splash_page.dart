@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -5,7 +7,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key, this.ready, this.onCompleted});
 
-  /// No default timer: the app's startup policy supplies this completion signal.
+  /// Optional startup work must finish before leaving, after the minimum delay.
   final Future<void>? ready;
   final VoidCallback? onCompleted;
 
@@ -15,10 +17,19 @@ class SplashPage extends StatefulWidget {
 
 class _SplashPageState extends State<SplashPage> {
   bool _completed = false;
+  bool _elapsed = false;
+  bool _ready = false;
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
+    if (widget.onCompleted != null) {
+      _timer = Timer(const Duration(seconds: 2), () {
+        _elapsed = true;
+        _complete();
+      });
+    }
     _waitForReady();
   }
 
@@ -30,16 +41,34 @@ class _SplashPageState extends State<SplashPage> {
 
   Future<void> _waitForReady() async {
     final ready = widget.ready;
-    if (ready == null || _completed) return;
+    _ready = ready == null;
+    if (ready == null) {
+      _complete();
+      return;
+    }
+    if (_completed) return;
     try {
       await ready;
       if (mounted && ready == widget.ready && !_completed) {
-        _completed = true;
-        widget.onCompleted?.call();
+        _ready = true;
+        _complete();
       }
     } catch (_) {
       // An unsuccessful startup must not advance to Login.
     }
+  }
+
+  void _complete() {
+    if (!mounted || _completed || !_elapsed || !_ready) return;
+    _completed = true;
+    _timer?.cancel();
+    widget.onCompleted?.call();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
   @override

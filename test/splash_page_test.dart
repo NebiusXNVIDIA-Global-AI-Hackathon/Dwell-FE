@@ -1,5 +1,7 @@
 import 'package:dwell/app.dart';
 import 'package:dwell/core/router.dart';
+import 'package:dwell/features/auth/providers/session_provider.dart';
+import 'package:dwell/features/auth/pages/login_page.dart';
 import 'package:dwell/core/widgets/bottom_nav_bar.dart';
 import 'package:dwell/features/home/home_page.dart';
 import 'package:dwell/features/cases/pages/cases_page.dart';
@@ -92,7 +94,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(SplashPage), findsOneWidget);
       await tester.pump(const Duration(seconds: 30));
-      expect(find.byType(SplashPage), findsOneWidget);
+      await tester.pumpAndSettle();
+      expect(find.byType(LoginPage), findsOneWidget);
+      container.read(sessionProvider.notifier).enterDemo();
       router.go('/home');
       await tester.pumpAndSettle();
       expect(find.byType(HomePage), findsOneWidget);
@@ -100,10 +104,14 @@ void main() {
       router.go('/cases');
       await tester.pumpAndSettle();
       expect(find.byType(CasesPage), findsOneWidget);
+      container.read(sessionProvider.notifier).endDemo();
       router.go('/');
       await tester.pumpAndSettle();
       expect(find.byType(SplashPage), findsOneWidget);
       expect(find.byType(BottomNavBar), findsNothing);
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+      expect(find.byType(LoginPage), findsOneWidget);
     },
   );
 }

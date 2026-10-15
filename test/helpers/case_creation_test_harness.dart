@@ -6,6 +6,7 @@ import 'package:dwell/features/cases/services/evidence_documents.dart';
 import 'package:dwell/app.dart';
 import 'package:dwell/features/cases/pages/evidence/evidence_camera_page.dart';
 import 'package:dwell/core/router.dart';
+import 'package:dwell/features/auth/providers/session_provider.dart';
 import 'package:dwell/features/cases/pages/case_creation_page.dart';
 import 'package:dwell/features/cases/widgets/creation/case_creation_bottom.dart';
 import 'package:dwell/features/cases/widgets/creation/case_creation_header.dart';
@@ -105,6 +106,7 @@ class CreationHarness {
         ),
       ],
     );
+    container.read(sessionProvider.notifier).enterDemo();
     final router = container.read(routerProvider);
     router.go(direct ? '/cases/new' : '/cases');
     addTearDown(() async {

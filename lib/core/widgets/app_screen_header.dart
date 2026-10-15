@@ -1,10 +1,12 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'profile_menu.dart';
+import '../../features/auth/providers/session_provider.dart';
 
 /// Home and Reports share geometry; system space is applied by the page once.
-class AppScreenHeader extends StatelessWidget {
+class AppScreenHeader extends ConsumerWidget {
   const AppScreenHeader({
     super.key,
     required this.title,
@@ -26,7 +28,7 @@ class AppScreenHeader extends StatelessWidget {
       kIsWeb ? 0 : MediaQuery.paddingOf(context).top;
 
   @override
-  Widget build(BuildContext context) => Center(
+  Widget build(BuildContext context, WidgetRef ref) => Center(
     heightFactor: 1,
     child: ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 590),
@@ -52,7 +54,14 @@ class AppScreenHeader extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              ProfileMenu(nickname: 'SJ', size: 42, onLogout: onLogout),
+              ProfileMenu(
+                nickname: 'SJ',
+                size: 42,
+                onLogout: onLogout,
+                onDemoLogout: ref.watch(sessionProvider) == SessionMode.demo
+                    ? () => ref.read(sessionProvider.notifier).endDemo()
+                    : null,
+              ),
             ],
           ),
         ),

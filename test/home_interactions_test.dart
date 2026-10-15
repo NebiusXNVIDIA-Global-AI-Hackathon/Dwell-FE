@@ -6,6 +6,7 @@ import 'package:dwell/features/cases/data/mock_cases.dart';
 import 'package:dwell/features/cases/models/case_model.dart';
 import 'package:dwell/core/widgets/bottom_nav_bar.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'helpers/case_creation_test_harness.dart';
@@ -228,7 +229,11 @@ void main() {
     (tester) async {
       String? selectedId;
       await tester.pumpWidget(
-        MaterialApp(home: HomePage(onViewCase: (id) => selectedId = id)),
+        ProviderScope(
+          child: MaterialApp(
+            home: HomePage(onViewCase: (id) => selectedId = id),
+          ),
+        ),
       );
       await tester.pumpAndSettle();
       await tester.tap(tab('C-005'));

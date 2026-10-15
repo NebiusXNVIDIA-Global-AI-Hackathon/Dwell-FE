@@ -8,6 +8,7 @@ import 'package:dwell/features/cases/widgets/list/case_search_tabs.dart';
 import 'package:dwell/features/cases/widgets/list/case_sort_menu.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 void main() {
   test('Every mock filter value belongs to the design options', () {
@@ -59,7 +60,9 @@ void main() {
       tester.view.physicalSize = Size(width, 900);
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
-      await tester.pumpWidget(const MaterialApp(home: CasesPage()));
+      await tester.pumpWidget(
+        const ProviderScope(child: MaterialApp(home: CasesPage())),
+      );
       await tester.pumpAndSettle();
       final cards = find.byType(CaseCard);
       final columns = width < 390 ? 2 : 3;
@@ -86,7 +89,9 @@ void main() {
     tester.view.physicalSize = const Size(390, 900);
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    await tester.pumpWidget(const MaterialApp(home: CasesPage()));
+    await tester.pumpWidget(
+      const ProviderScope(child: MaterialApp(home: CasesPage())),
+    );
     await tester.pumpAndSettle();
     for (final value in CaseFilterOptions.values[CaseFilterGroup.issueType]!) {
       await tester.tap(find.byTooltip('Filter Cases'));

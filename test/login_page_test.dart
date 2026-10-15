@@ -386,6 +386,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(SplashPage), findsOneWidget);
     ready.complete();
+    await tester.pump(const Duration(seconds: 2));
     await tester.pumpAndSettle();
     expect(find.byType(LoginPage), findsOneWidget);
     expect(find.byType(BottomNavBar), findsNothing);
