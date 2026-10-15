@@ -10,6 +10,11 @@ import '../features/assistant/pages/bring_in_case_page.dart';
 import '../features/assistant/pages/chat_page.dart';
 import '../features/cases/pages/cases_page.dart';
 import '../features/splash/splash_page.dart';
+import '../features/auth/pages/login_page.dart';
+import '../features/auth/providers/session_provider.dart';
+import '../features/auth/providers/sign_up_provider.dart';
+import '../features/auth/pages/sign_up_page.dart';
+import '../features/auth/pages/sign_up_address_page.dart';
 import '../features/cases/pages/case_creation_page.dart';
 import '../features/cases/pages/analyzing_evidence_page.dart';
 import '../features/cases/models/evidence_analysis_input.dart';
@@ -21,16 +26,70 @@ import '../features/cases/controllers/mock_evidence_check_controller.dart'
 import 'layouts/main_layout.dart';
 
 // 화면 추가 시 여기 GoRoute 도 추가
+// Optional future startup/auth check, in addition to the minimum Splash duration.
+final splashCompletionProvider = Provider<Future<void>?>((ref) => null);
+
 final routerProvider = Provider<GoRouter>((ref) {
+  final refresh = ValueNotifier(ref.read(sessionProvider));
+  ref.listen(sessionProvider, (_, next) => refresh.value = next);
   final router = GoRouter(
-    // 하단바 확인을 위해 홈에서 시작
-    initialLocation: '/home',
+    initialLocation: '/splash',
     debugLogDiagnostics: true,
+    refreshListenable: refresh,
+    redirect: (_, state) {
+      final mode = ref.read(sessionProvider);
+      final hasAccess =
+          mode == SessionMode.demo || mode == SessionMode.authenticated;
+      final path = state.uri.path;
+      final isSignUp = path == '/sign-up' || path == '/sign-up/address';
+      final isPublic =
+          path == '/' || path == '/splash' || path == '/login' || isSignUp;
+      if (!hasAccess && !isPublic) return '/login';
+      // A previous browser entry for Login must not interrupt an active demo.
+      if (hasAccess && (path == '/login' || isSignUp)) return '/home';
+      return null;
+    },
     routes: [
-      GoRoute(path: '/', redirect: (context, state) => '/home'),
+      GoRoute(path: '/', redirect: (context, state) => '/splash'),
 
       // 하단바 없이 표시할 페이지
-      GoRoute(path: '/splash', builder: (context, state) => const SplashPage()),
+      GoRoute(
+        path: '/splash',
+        name: 'splash',
+        builder: (context, state) => SplashPage(
+          ready: ref.read(splashCompletionProvider),
+          onCompleted: () => context.go(
+            ref.read(sessionProvider) == SessionMode.unauthenticated
+                ? '/login'
+                : '/home',
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/login',
+        name: 'login',
+        builder: (context, state) => LoginPage(
+          onSignUp: () => context.goNamed('sign-up'),
+          onDemo: () async {
+            ref.read(sessionProvider.notifier).enterDemo();
+            // The refreshed route guard owns the single transition to Home.
+          },
+        ),
+      ),
+      GoRoute(
+        path: '/sign-up',
+        name: 'sign-up',
+        builder: (_, _) => const SignUpPage(),
+        routes: [
+          GoRoute(
+            path: 'address',
+            name: 'sign-up-address',
+            redirect: (_, _) =>
+                ref.read(signUpProvider).canContinue ? null : '/sign-up',
+            builder: (_, _) => const SignUpAddressPage(),
+          ),
+        ],
+      ),
       // 케이스 등록 페이지
       GoRoute(
         path: '/cases/new',
@@ -166,7 +225,10 @@ final routerProvider = Provider<GoRouter>((ref) {
     ),
   );
 
-  ref.onDispose(router.dispose);
+  ref.onDispose(() {
+    router.dispose();
+    refresh.dispose();
+  });
 
   return router;
 });

@@ -1,6 +1,7 @@
 import 'package:dwell/core/widgets/app_screen_header.dart';
 import 'package:dwell/core/widgets/profile_avatar.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -14,21 +15,23 @@ void main() {
         addTearDown(tester.view.resetPhysicalSize);
         addTearDown(tester.view.resetDevicePixelRatio);
         await tester.pumpWidget(
-          MaterialApp(
-            home: MediaQuery(
-              data: MediaQueryData(
-                size: const Size(390, 844),
-                padding: EdgeInsets.only(top: inset),
-              ),
-              child: Builder(
-                builder: (context) => Scaffold(
-                  body: Padding(
-                    padding: EdgeInsets.only(
-                      top: AppScreenHeader.systemTopInset(context),
-                    ),
-                    child: const AppScreenHeader(
-                      webTopPadding: 70,
-                      title: Text('Cases'),
+          ProviderScope(
+            child: MaterialApp(
+              home: MediaQuery(
+                data: MediaQueryData(
+                  size: const Size(390, 844),
+                  padding: EdgeInsets.only(top: inset),
+                ),
+                child: Builder(
+                  builder: (context) => Scaffold(
+                    body: Padding(
+                      padding: EdgeInsets.only(
+                        top: AppScreenHeader.systemTopInset(context),
+                      ),
+                      child: const AppScreenHeader(
+                        webTopPadding: 70,
+                        title: Text('Cases'),
+                      ),
                     ),
                   ),
                 ),

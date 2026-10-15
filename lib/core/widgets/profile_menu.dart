@@ -10,12 +10,14 @@ class ProfileMenu extends StatefulWidget {
     required this.nickname,
     this.size = 42,
     this.onLogout,
+    this.onDemoLogout,
   });
   final String nickname;
   final double size;
 
   /// Supply the real session logout and auth-route handling when available.
   final Future<void> Function()? onLogout;
+  final VoidCallback? onDemoLogout;
 
   @override
   State<ProfileMenu> createState() => _ProfileMenuState();
@@ -57,13 +59,19 @@ class _ProfileMenuState extends State<ProfileMenu> {
     _dialogOpen = true;
     _menu.close();
     try {
-      await showDialog<void>(
+      final confirmed = await showDialog<bool>(
         context: context,
         useRootNavigator: true,
         barrierDismissible: false,
         barrierColor: const Color(0x33000000),
-        builder: (_) => LogoutConfirmationDialog(onLogout: widget.onLogout),
+        builder: (dialogContext) => LogoutConfirmationDialog(
+          onLogout: widget.onLogout,
+          onConfirm: widget.onLogout == null && widget.onDemoLogout != null
+              ? () => Navigator.of(dialogContext).pop(true)
+              : null,
+        ),
       );
+      if (confirmed == true && mounted) widget.onDemoLogout?.call();
     } finally {
       _dialogOpen = false;
       if (mounted &&

@@ -1,8 +1,11 @@
 import 'package:material_ui/material_ui.dart';
 
 class LogoutConfirmationDialog extends StatefulWidget {
-  const LogoutConfirmationDialog({super.key, this.onLogout});
+  const LogoutConfirmationDialog({super.key, this.onLogout, this.onConfirm});
   final Future<void> Function()? onLogout;
+
+  /// Allows a local demo to close the dialog before the route guard runs.
+  final VoidCallback? onConfirm;
 
   @override
   State<LogoutConfirmationDialog> createState() =>
@@ -15,6 +18,11 @@ class _LogoutConfirmationDialogState extends State<LogoutConfirmationDialog> {
 
   Future<void> _confirm() async {
     if (_busy) return;
+    if (widget.onConfirm != null) {
+      setState(() => _busy = true);
+      widget.onConfirm!();
+      return;
+    }
     final logout = widget.onLogout;
     if (logout == null) {
       setState(() => _message = 'Logout is not connected yet.');

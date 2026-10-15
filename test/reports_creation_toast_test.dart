@@ -15,6 +15,7 @@ import 'package:dwell/features/cases/widgets/list/case_search_tabs.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'helpers/case_creation_test_harness.dart';
@@ -133,9 +134,11 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
       await tester.pumpWidget(
-        MaterialApp(
-          theme: buildTheme(Brightness.light),
-          home: CasesPage(creationNotice: notice(demo: false)),
+        ProviderScope(
+          child: MaterialApp(
+            theme: buildTheme(Brightness.light),
+            home: CasesPage(creationNotice: notice(demo: false)),
+          ),
         ),
       );
       await tester.pump(const Duration(milliseconds: 200));

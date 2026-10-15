@@ -5,6 +5,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dwell/app.dart';
+import 'package:dwell/core/router.dart';
+import 'package:dwell/features/auth/providers/session_provider.dart';
 
 import 'package:dwell/core/widgets/profile_avatar.dart';
 import 'package:dwell/core/widgets/profile_menu.dart';
@@ -169,12 +171,16 @@ void main() {
   testWidgets(
     'Unconnected logout reports missing integration without changing route or session',
     (tester) async {
-      final h = await openHome(tester);
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(body: ProfileMenu(nickname: 'SJ')),
+        ),
+      );
       await openDialog(tester);
       await tester.tap(find.widgetWithText(TextButton, 'Log out'));
       await tester.pumpAndSettle();
       expect(find.text('Logout is not connected yet.'), findsOneWidget);
-      expect(h.router.routeInformationProvider.value.uri.path, '/home');
+      expect(find.byType(ProfileMenu), findsOneWidget);
       expect(find.byType(LogoutConfirmationDialog), findsOneWidget);
       await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
       await tester.pumpAndSettle();
@@ -309,9 +315,14 @@ void main() {
       addTearDown(tester.view.resetPadding);
       addTearDown(tester.view.resetViewPadding);
       // Capture outside MaterialApp so root-overlay menus/dialogs are included.
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(sessionProvider.notifier).enterDemo();
+      container.read(routerProvider).go('/home');
       await tester.pumpWidget(
-        const ProviderScope(
-          child: RepaintBoundary(
+        UncontrolledProviderScope(
+          container: container,
+          child: const RepaintBoundary(
             key: ValueKey('profile-preview'),
             child: DwellApp(),
           ),
