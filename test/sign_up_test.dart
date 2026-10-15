@@ -151,6 +151,12 @@ void main() {
       await tester.pumpAndSettle();
       await capture('signup-invalid');
       await fillStep1(tester);
+      await capture('signup-email-filled');
+      tester.view.physicalSize = const Size(320, 844);
+      await tester.pumpAndSettle();
+      await capture('signup-email-320');
+      tester.view.physicalSize = const Size(390, 844);
+      await tester.pumpAndSettle();
       await next(tester);
       await chooseAddress(tester);
       await capture('signup-address');

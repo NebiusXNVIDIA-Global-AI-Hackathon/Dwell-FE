@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -13,6 +15,9 @@ class EmailDomainDropdown extends StatefulWidget {
     this.controlKey = const ValueKey('email-domain'),
     this.maxMenuHeight,
     this.optionNames = const {},
+    this.horizontalPadding = 8,
+    this.arrowGap = 8,
+    this.minimumMenuWidth,
   });
   final String? value;
   final ValueChanged<String> onChanged;
@@ -23,6 +28,28 @@ class EmailDomainDropdown extends StatefulWidget {
   final Key controlKey;
   final double? maxMenuHeight;
   final Map<String, String> optionNames;
+  final double horizontalPadding, arrowGap;
+  final double? minimumMenuWidth;
+
+  EmailDomainDropdown withLayout({
+    required double horizontalPadding,
+    required double arrowGap,
+    required double minimumMenuWidth,
+  }) => EmailDomainDropdown(
+    key: key,
+    value: value,
+    onChanged: onChanged,
+    enabled: enabled,
+    options: options,
+    showSelectionMark: showSelectionMark,
+    semanticLabel: semanticLabel,
+    controlKey: controlKey,
+    maxMenuHeight: maxMenuHeight,
+    optionNames: optionNames,
+    horizontalPadding: horizontalPadding,
+    arrowGap: arrowGap,
+    minimumMenuWidth: minimumMenuWidth,
+  );
   static const domains = ['naver.com', 'daum.net', 'google.com'];
 
   @override
@@ -50,19 +77,22 @@ class _EmailDomainDropdownState extends State<EmailDomainDropdown> {
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       final width = constraints.maxWidth;
+      final menuWidth = math
+          .max(width, widget.minimumMenuWidth ?? width)
+          .clamp(0.0, MediaQuery.sizeOf(context).width - 16);
       return MenuAnchor(
         controller: _menu,
         childFocusNode: _focus,
         useRootOverlay: true,
         consumeOutsideTap: true,
-        crossAxisUnconstrained: false,
+        crossAxisUnconstrained: widget.minimumMenuWidth != null,
         onOpen: () => setState(() => _open = true),
         onClose: () {
           if (mounted) setState(() => _open = false);
         },
         style: MenuStyle(
           alignment: Alignment.bottomLeft,
-          fixedSize: WidgetStatePropertyAll(Size.fromWidth(width)),
+          fixedSize: WidgetStatePropertyAll(Size.fromWidth(menuWidth)),
           maximumSize: widget.maxMenuHeight == null
               ? null
               : WidgetStatePropertyAll(Size(width, widget.maxMenuHeight!)),
@@ -108,7 +138,7 @@ class _EmailDomainDropdownState extends State<EmailDomainDropdown> {
                 overlayColor: WidgetStatePropertyAll(Colors.transparent),
                 splashFactory: NoSplash.splashFactory,
               ),
-              child: Text(domain, softWrap: true),
+              child: Text(domain, maxLines: 1, softWrap: false),
             ),
           ],
         ],
@@ -125,8 +155,8 @@ class _EmailDomainDropdownState extends State<EmailDomainDropdown> {
             style:
                 OutlinedButton.styleFrom(
                   minimumSize: const Size(0, 56),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: widget.horizontalPadding,
                     vertical: 12,
                   ),
                   foregroundColor: const Color(0xFF606060),
@@ -147,9 +177,11 @@ class _EmailDomainDropdownState extends State<EmailDomainDropdown> {
                   child: Text(
                     widget.value ?? '',
                     style: const TextStyle(fontSize: 16),
-                    softWrap: true,
+                    maxLines: 1,
+                    softWrap: false,
                   ),
                 ),
+                SizedBox(width: widget.arrowGap),
                 Icon(
                   _open ? LucideIcons.chevronDown : LucideIcons.chevronUp,
                   size: 18,

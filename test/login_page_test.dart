@@ -14,6 +14,8 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'helpers/case_creation_test_harness.dart' show loadCreationTestFonts;
+
 Finder get email => find.byKey(const ValueKey('login-email'));
 Finder get password => find.byKey(const ValueKey('login-password'));
 Finder get domain => find.byKey(const ValueKey('email-domain'));
@@ -56,6 +58,7 @@ Future<void> fillValid(WidgetTester tester) async {
 }
 
 void main() {
+  setUpAll(loadCreationTestFonts);
   if (const bool.fromEnvironment('DWELL_LOGIN_PREVIEW')) {
     testWidgets('Login design previews', (tester) async {
       final loader = FontLoader('Pretendard Variable')

@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../providers/sign_up_provider.dart';
 import '../widgets/email_domain_dropdown.dart';
+import '../widgets/email_input_row.dart';
 import '../widgets/sign_up_components.dart';
 
 class SignUpPage extends ConsumerStatefulWidget {
@@ -93,45 +94,29 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
             const SizedBox(height: 14),
             SignUpField(
               label: 'Email Address',
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 7,
-                    child: TextField(
-                      key: const ValueKey('signup-email'),
-                      controller: _email,
-                      keyboardType: TextInputType.emailAddress,
-                      autocorrect: false,
-                      enableSuggestions: false,
-                      style: const TextStyle(fontSize: 16, height: 1.2),
-                      decoration: signUpDecoration('Enter your email'),
-                      onChanged: (value) => controller.update(
-                        ref
-                            .read(signUpProvider)
-                            .copyWith(emailLocalPart: value),
-                      ),
-                    ),
+              child: EmailInputRow(
+                inputBuilder: (padding) => TextField(
+                  key: const ValueKey('signup-email'),
+                  controller: _email,
+                  keyboardType: TextInputType.emailAddress,
+                  autocorrect: false,
+                  enableSuggestions: false,
+                  style: const TextStyle(fontSize: 16, height: 1.2),
+                  decoration: emailInputDecoration(
+                    signUpDecoration('Enter your email'),
+                    padding,
                   ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text(
-                      '@',
-                      style: TextStyle(fontSize: 20, color: Color(0xFF606060)),
-                    ),
+                  onChanged: (value) => controller.update(
+                    ref.read(signUpProvider).copyWith(emailLocalPart: value),
                   ),
-                  Expanded(
-                    flex: 4,
-                    child: EmailDomainDropdown(
-                      value: draft.emailDomain.isEmpty
-                          ? null
-                          : draft.emailDomain,
-                      showSelectionMark: true,
-                      onChanged: (value) => controller.update(
-                        ref.read(signUpProvider).copyWith(emailDomain: value),
-                      ),
-                    ),
+                ),
+                dropdown: EmailDomainDropdown(
+                  value: draft.emailDomain.isEmpty ? null : draft.emailDomain,
+                  showSelectionMark: true,
+                  onChanged: (value) => controller.update(
+                    ref.read(signUpProvider).copyWith(emailDomain: value),
                   ),
-                ],
+                ),
               ),
             ),
             const SizedBox(height: 26),

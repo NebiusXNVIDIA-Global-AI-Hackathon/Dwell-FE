@@ -2,6 +2,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'email_domain_dropdown.dart';
+import 'email_input_row.dart';
 
 /// Integration hooks never create a session or navigate on their own.
 class LoginForm extends StatefulWidget {
@@ -147,43 +148,30 @@ class _LoginFormState extends State<LoginForm> {
           style: TextStyle(color: Color(0xFF606060), fontSize: 16, height: 1.2),
         ),
         const SizedBox(height: 10),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              flex: 7,
-              child: TextField(
-                key: const ValueKey('login-email'),
-                controller: _email,
-                enabled: !_busy,
-                autocorrect: false,
-                enableSuggestions: false,
-                keyboardType: TextInputType.emailAddress,
-                textInputAction: TextInputAction.next,
-                style: const TextStyle(fontSize: 16, height: 1.2),
-                decoration: _decoration('Enter your email'),
-                onChanged: (_) => setState(() => _notice = null),
-              ),
+        EmailInputRow(
+          inputBuilder: (padding) => TextField(
+            key: const ValueKey('login-email'),
+            controller: _email,
+            enabled: !_busy,
+            autocorrect: false,
+            enableSuggestions: false,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+            style: const TextStyle(fontSize: 16, height: 1.2),
+            decoration: emailInputDecoration(
+              _decoration('Enter your email'),
+              padding,
             ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8),
-              child: Text(
-                '@',
-                style: TextStyle(color: Color(0xFF606060), fontSize: 20),
-              ),
-            ),
-            Expanded(
-              flex: 4,
-              child: EmailDomainDropdown(
-                value: _domain,
-                enabled: !_busy,
-                onChanged: (domain) => setState(() {
-                  _domain = domain;
-                  _notice = null;
-                }),
-              ),
-            ),
-          ],
+            onChanged: (_) => setState(() => _notice = null),
+          ),
+          dropdown: EmailDomainDropdown(
+            value: _domain,
+            enabled: !_busy,
+            onChanged: (domain) => setState(() {
+              _domain = domain;
+              _notice = null;
+            }),
+          ),
         ),
         const SizedBox(height: 18),
         const Text(
