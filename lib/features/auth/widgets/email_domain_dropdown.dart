@@ -7,10 +7,22 @@ class EmailDomainDropdown extends StatefulWidget {
     required this.value,
     required this.onChanged,
     this.enabled = true,
+    this.options = domains,
+    this.showSelectionMark = false,
+    this.semanticLabel = 'Choose email domain',
+    this.controlKey = const ValueKey('email-domain'),
+    this.maxMenuHeight,
+    this.optionNames = const {},
   });
   final String? value;
   final ValueChanged<String> onChanged;
   final bool enabled;
+  final List<String> options;
+  final bool showSelectionMark;
+  final String semanticLabel;
+  final Key controlKey;
+  final double? maxMenuHeight;
+  final Map<String, String> optionNames;
   static const domains = ['naver.com', 'daum.net', 'google.com'];
 
   @override
@@ -51,6 +63,9 @@ class _EmailDomainDropdownState extends State<EmailDomainDropdown> {
         style: MenuStyle(
           alignment: Alignment.bottomLeft,
           fixedSize: WidgetStatePropertyAll(Size.fromWidth(width)),
+          maximumSize: widget.maxMenuHeight == null
+              ? null
+              : WidgetStatePropertyAll(Size(width, widget.maxMenuHeight!)),
           padding: const WidgetStatePropertyAll(EdgeInsets.zero),
           backgroundColor: const WidgetStatePropertyAll(Color(0xFFFCFCFC)),
           surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
@@ -63,10 +78,20 @@ class _EmailDomainDropdownState extends State<EmailDomainDropdown> {
           elevation: const WidgetStatePropertyAll(0),
         ),
         menuChildren: [
-          for (final domain in EmailDomainDropdown.domains) ...[
-            if (domain != EmailDomainDropdown.domains.first)
+          for (final domain in widget.options) ...[
+            if (domain != widget.options.first)
               const Divider(height: 1, color: Color(0xFFAAAAAA)),
             MenuItemButton(
+              semanticsLabel: widget.optionNames[domain] == null
+                  ? domain
+                  : '$domain, ${widget.optionNames[domain]}',
+              trailingIcon: widget.showSelectionMark && domain == widget.value
+                  ? const Icon(
+                      LucideIcons.check,
+                      size: 16,
+                      color: Color(0xFF0065F3),
+                    )
+                  : null,
               onPressed: () {
                 _menu.close();
                 widget.onChanged(domain);
@@ -90,7 +115,7 @@ class _EmailDomainDropdownState extends State<EmailDomainDropdown> {
         builder: (_, _, _) => Semantics(
           expanded: _open,
           child: OutlinedButton(
-            key: const ValueKey('email-domain'),
+            key: widget.controlKey,
             focusNode: _focus,
             onPressed: widget.enabled
                 ? () {
@@ -128,7 +153,7 @@ class _EmailDomainDropdownState extends State<EmailDomainDropdown> {
                 Icon(
                   _open ? LucideIcons.chevronDown : LucideIcons.chevronUp,
                   size: 18,
-                  semanticLabel: 'Choose email domain',
+                  semanticLabel: widget.semanticLabel,
                 ),
               ],
             ),

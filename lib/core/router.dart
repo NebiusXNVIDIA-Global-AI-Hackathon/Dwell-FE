@@ -12,6 +12,9 @@ import '../features/cases/pages/cases_page.dart';
 import '../features/splash/splash_page.dart';
 import '../features/auth/pages/login_page.dart';
 import '../features/auth/providers/session_provider.dart';
+import '../features/auth/providers/sign_up_provider.dart';
+import '../features/auth/pages/sign_up_page.dart';
+import '../features/auth/pages/sign_up_address_page.dart';
 import '../features/cases/pages/case_creation_page.dart';
 import '../features/cases/pages/analyzing_evidence_page.dart';
 import '../features/cases/models/evidence_analysis_input.dart';
@@ -38,10 +41,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       final hasAccess =
           mode == SessionMode.demo || mode == SessionMode.authenticated;
       final path = state.uri.path;
-      final isPublic = path == '/' || path == '/splash' || path == '/login';
+      final isSignUp = path == '/sign-up' || path == '/sign-up/address';
+      final isPublic =
+          path == '/' || path == '/splash' || path == '/login' || isSignUp;
       if (!hasAccess && !isPublic) return '/login';
       // A previous browser entry for Login must not interrupt an active demo.
-      if (hasAccess && path == '/login') return '/home';
+      if (hasAccess && (path == '/login' || isSignUp)) return '/home';
       return null;
     },
     routes: [
@@ -64,11 +69,26 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/login',
         name: 'login',
         builder: (context, state) => LoginPage(
+          onSignUp: () => context.goNamed('sign-up'),
           onDemo: () async {
             ref.read(sessionProvider.notifier).enterDemo();
             // The refreshed route guard owns the single transition to Home.
           },
         ),
+      ),
+      GoRoute(
+        path: '/sign-up',
+        name: 'sign-up',
+        builder: (_, _) => const SignUpPage(),
+        routes: [
+          GoRoute(
+            path: 'address',
+            name: 'sign-up-address',
+            redirect: (_, _) =>
+                ref.read(signUpProvider).canContinue ? null : '/sign-up',
+            builder: (_, _) => const SignUpAddressPage(),
+          ),
+        ],
       ),
       // 케이스 등록 페이지
       GoRoute(
