@@ -10,6 +10,7 @@ import '../features/assistant/pages/bring_in_case_page.dart';
 import '../features/assistant/pages/chat_page.dart';
 import '../features/cases/pages/cases_page.dart';
 import '../features/splash/splash_page.dart';
+import '../features/auth/pages/login_page.dart';
 import '../features/cases/pages/case_creation_page.dart';
 import '../features/cases/pages/analyzing_evidence_page.dart';
 import '../features/cases/models/evidence_analysis_input.dart';
@@ -21,9 +22,12 @@ import '../features/cases/controllers/mock_evidence_check_controller.dart'
 import 'layouts/main_layout.dart';
 
 // 화면 추가 시 여기 GoRoute 도 추가
+// Supply the real startup completion policy when it is defined. No timer yet.
+final splashCompletionProvider = Provider<Future<void>?>((ref) => null);
+
 final routerProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
-    // Splash stays visible until the future Login flow is connected.
+    // Splash stays visible until the startup completion signal is supplied.
     initialLocation: '/splash',
     debugLogDiagnostics: true,
     routes: [
@@ -33,7 +37,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/splash',
         name: 'splash',
-        builder: (context, state) => const SplashPage(),
+        builder: (context, state) => SplashPage(
+          ready: ref.read(splashCompletionProvider),
+          onCompleted: () => context.goNamed('login'),
+        ),
+      ),
+      GoRoute(
+        path: '/login',
+        name: 'login',
+        builder: (context, state) => const LoginPage(),
       ),
       // 케이스 등록 페이지
       GoRoute(

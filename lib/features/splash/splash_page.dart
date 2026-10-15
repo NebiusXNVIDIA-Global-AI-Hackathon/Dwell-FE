@@ -2,8 +2,45 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-class SplashPage extends StatelessWidget {
-  const SplashPage({super.key});
+class SplashPage extends StatefulWidget {
+  const SplashPage({super.key, this.ready, this.onCompleted});
+
+  /// No default timer: the app's startup policy supplies this completion signal.
+  final Future<void>? ready;
+  final VoidCallback? onCompleted;
+
+  @override
+  State<SplashPage> createState() => _SplashPageState();
+}
+
+class _SplashPageState extends State<SplashPage> {
+  bool _completed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _waitForReady();
+  }
+
+  @override
+  void didUpdateWidget(covariant SplashPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.ready != widget.ready) _waitForReady();
+  }
+
+  Future<void> _waitForReady() async {
+    final ready = widget.ready;
+    if (ready == null || _completed) return;
+    try {
+      await ready;
+      if (mounted && ready == widget.ready && !_completed) {
+        _completed = true;
+        widget.onCompleted?.call();
+      }
+    } catch (_) {
+      // An unsuccessful startup must not advance to Login.
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
