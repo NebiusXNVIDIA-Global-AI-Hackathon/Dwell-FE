@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 import 'email_domain_dropdown.dart';
 import 'email_input_row.dart';
+import '../models/email_validation.dart';
 
 /// Integration hooks never create a session or navigate on their own.
 class LoginForm extends StatefulWidget {
@@ -26,9 +27,7 @@ class _LoginFormState extends State<LoginForm> {
   bool get _valid {
     final local = _email.text.trim();
     return _domain != null &&
-        RegExp(
-          r'^[a-zA-Z0-9!#$%&\x27*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&\x27*+/=?^_`{|}~-]+)*$',
-        ).hasMatch(local) &&
+        isValidEmailLocalPart(local) &&
         _password.text.trim().isNotEmpty;
   }
 

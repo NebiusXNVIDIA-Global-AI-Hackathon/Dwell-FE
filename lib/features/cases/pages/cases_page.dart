@@ -3,8 +3,10 @@ import 'dart:math' as math;
 import 'package:dwell/core/widgets/app_screen_header.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../data/mock_cases.dart';
+import '../data/reports_cases_provider.dart';
+import '../models/reports_case_query.dart';
 import '../models/case_filters.dart';
 import '../models/case_model.dart';
 import '../models/case_sort_order.dart';
@@ -19,15 +21,15 @@ import '../widgets/list/case_sort_menu.dart';
 
 import 'package:go_router/go_router.dart';
 
-class CasesPage extends StatefulWidget {
+class CasesPage extends ConsumerStatefulWidget {
   const CasesPage({super.key, this.creationNotice});
   final ReportsCreationNotice? creationNotice;
 
   @override
-  State<CasesPage> createState() => _CasesPageState();
+  ConsumerState<CasesPage> createState() => _CasesPageState();
 }
 
-class _CasesPageState extends State<CasesPage> {
+class _CasesPageState extends ConsumerState<CasesPage> {
   String _searchQuery = '';
   CaseStatus? _selectedStatus; // null = All
   CaseFilters _appliedFilters = CaseFilters();
@@ -104,17 +106,6 @@ class _CasesPageState extends State<CasesPage> {
     super.dispose();
   }
 
-  List<CaseModel> get _matchingCases {
-    final query = _searchQuery.trim().toLowerCase();
-
-    return mockCases.where((item) {
-      final matchesSearch =
-          query.isEmpty || item.title.toLowerCase().startsWith(query);
-
-      return matchesSearch && _appliedFilters.matches(item);
-    }).toList();
-  }
-
   Future<void> _openFilters() async {
     FocusManager.instance.primaryFocus?.unfocus();
     final colors = Theme.of(context).colorScheme;
@@ -173,25 +164,19 @@ class _CasesPageState extends State<CasesPage> {
     final textColor = isLight ? const Color(0xFF243B53) : colors.onSurface;
 
     // 탭 숫자는 검색·필터 결과로 계산한다.
-    final matchingCases = _matchingCases;
+    final state = ref.watch(reportsCasesProvider);
+    final matchingCases = matchingReportsCases(
+      state.asData?.value ?? const [],
+      search: _searchQuery,
+      filters: _appliedFilters,
+    );
 
     // 선택한 상태에 해당하는 목록을 복사한 후 생성일로 정렬한다.
-    final visibleCases =
-        matchingCases
-            .where(
-              (item) =>
-                  _selectedStatus == null || item.status == _selectedStatus,
-            )
-            .toList()
-          ..sort((a, b) {
-            final comparison = switch (_selectedSortOrder) {
-              CaseSortOrder.newest => b.createdAt.compareTo(a.createdAt),
-              CaseSortOrder.oldest => a.createdAt.compareTo(b.createdAt),
-            };
-
-            // 생성일이 같아도 표시 순서를 일정하게 유지한다.
-            return comparison != 0 ? comparison : a.id.compareTo(b.id);
-          });
+    final visibleCases = visibleReportsCases(
+      matchingCases,
+      status: _selectedStatus,
+      sort: _selectedSortOrder,
+    );
 
     return Scaffold(
       floatingActionButton: SizedBox(
@@ -368,7 +353,23 @@ class _CasesPageState extends State<CasesPage> {
                     fit: StackFit.expand,
                     clipBehavior: Clip.none,
                     children: [
-                      visibleCases.isEmpty
+                      state.isLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : state.hasError
+                          ? Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text('Unable to load cases.'),
+                                  TextButton(
+                                    onPressed: () =>
+                                        ref.invalidate(reportsCasesProvider),
+                                    child: const Text('Retry'),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : visibleCases.isEmpty
                           ? Align(
                               alignment: const Alignment(0, -0.2),
                               child: Padding(

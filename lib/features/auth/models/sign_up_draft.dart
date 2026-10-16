@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart' show StringCharacters;
 
 import '../data/us_states.dart';
+import 'email_validation.dart';
 
 /// Sensitive, in-memory form data only. Do not log, persist or serialize it.
 @immutable
@@ -29,9 +30,7 @@ class SignUpDraft {
       password.characters.length >= 6 && password.characters.length <= 8;
   bool get validEmail =>
       const ['naver.com', 'daum.net', 'google.com'].contains(emailDomain) &&
-      RegExp(
-        r'^[a-zA-Z0-9!#$%&\x27*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&\x27*+/=?^_`{|}~-]+)*$',
-      ).hasMatch(emailLocalPart.trim());
+      isValidEmailLocalPart(emailLocalPart);
   String get email => '${emailLocalPart.trim()}@$emailDomain';
   String? get passwordError => passwordTouched && !validPassword
       ? 'Password must be 6-8 characters long.'

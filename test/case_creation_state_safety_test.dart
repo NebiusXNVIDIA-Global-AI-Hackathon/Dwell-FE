@@ -180,7 +180,7 @@ void main() {
     c.setOtherAffectedArea('corner');
     expect(c.canGoNext, isTrue);
   });
-  test('Entire Unit has no Area options and retains Step 5 TODO', () {
+  test('Entire Unit has no Area options and waits for the evidence guide', () {
     final c = populated();
     c.editLocation();
     c.selectLocation('Entire Unit');

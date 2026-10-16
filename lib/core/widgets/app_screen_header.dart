@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 
 import 'profile_menu.dart';
 import '../../features/auth/providers/session_provider.dart';
+import '../../features/auth/providers/profile_provider.dart';
 
 /// Home and Reports share geometry; system space is applied by the page once.
 class AppScreenHeader extends ConsumerWidget {
@@ -12,10 +13,12 @@ class AppScreenHeader extends ConsumerWidget {
     required this.title,
     this.webTopPadding = webTopGap,
     this.onLogout,
+    this.nickname,
   });
   final Widget title;
   final double webTopPadding;
   final Future<void> Function()? onLogout;
+  final String? nickname;
   // Web has no native status-bar area. Reserve its design space here;
   // native pages already apply their real system inset outside this header.
   static const webTopGap = 50.0;
@@ -55,7 +58,9 @@ class AppScreenHeader extends ConsumerWidget {
               ),
               const SizedBox(width: 12),
               ProfileMenu(
-                nickname: 'SJ',
+                nickname: ref.watch(sessionProvider) == SessionMode.demo
+                    ? 'SJ'
+                    : nickname ?? ref.watch(profileNicknameProvider) ?? 'SJ',
                 size: 42,
                 onLogout: onLogout,
                 onDemoLogout: ref.watch(sessionProvider) == SessionMode.demo
