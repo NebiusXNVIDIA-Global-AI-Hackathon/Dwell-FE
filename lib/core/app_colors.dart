@@ -36,4 +36,24 @@ abstract final class AppColors {
   static const iconGray = Color(0xFF8F8F8F); // 첨부 + 버튼
   static const iconFaint = Color(0xFFD3D1D1); // 섹션 옆 안내 아이콘
   static const scrim = Color(0x331A1A1A); // 모달 · 다이얼로그 뒤 배경
+
+  // 차트 전경 — navy 와 미세하게 다르므로 차트 안에서는 chartInk
+  static const chartDanger = Color(0xFFD90000); // Open · Class C · Slow repairs
+  static const chartWarning = Color(0xFFF28C00); // Class B · 반복 카테고리 · 단축 타이머
+  static const chartSuccess = Color(0xFF1E6B1F); // Fixed well
+  static const chartInk = Color(0xFF253650); // Complaints 막대 · 일반 막대
+  static const chartNeutral = Color(0xFF9AA3AE); // Class A
+  static const chartTrack = Color(0xFFECEEF1); // 트랙 · 빈 영역 · 중립 배지
+
+  // 연한 배경 — 타일 · 칩
+  static const dangerSoft = Color(0xFFF6D4D4);
+  static const warningSoft = Color(0xFFF8E3C8);
+  static const successSoft = Color(0xFFDCEFD9);
+  static const infoSoft = Color(0xFFDCE8F8);
+  static const focusSoft = Color(0xFFE0ECFD);
+
+  // 연한 배경 위 글자 — 전경색을 그대로 쓰면 대비 부족
+  static const warningText = Color(0xFFC46A00);
+  static const infoText = Color(0xFF3B6FD8);
+  static const focusText = Color(0xFF213B63);
 }
