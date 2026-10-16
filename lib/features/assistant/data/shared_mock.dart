@@ -3,7 +3,7 @@
 const demoUserName = 'Seohu Jang';
 const demoUserFirstName = 'Seohu';
 const demoUserInitials = 'SJ';
-const demoAddress = '254 W 107th St, Apt 4B, New York, NY 10025';
+const demoAddress = '245 W 107th St, Apt 4B, New York, NY 10025';
 const demoLandlordName = 'John Smith';
 const demoLandlordHonorific = 'Mr. Smith';
 
