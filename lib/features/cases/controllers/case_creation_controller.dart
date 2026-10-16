@@ -193,13 +193,13 @@ class CaseCreationController {
         return;
       case 3:
         if (CaseCreationOptions.skipsAffectedArea(_draft.location)) {
-          // TODO: Move Entire Unit directly to Step 5 · Add Evidence when implemented.
+          // The page opens the guide before calling beginEvidence().
           return;
         }
         _currentStep = 4;
         return;
       case 4:
-        // TODO: Move to Step 5 · Add Evidence when implemented.
+        // The page opens the guide before calling beginEvidence().
         return;
     }
   }

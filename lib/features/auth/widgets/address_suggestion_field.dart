@@ -4,6 +4,8 @@ import 'package:material_ui/material_ui.dart';
 import '../services/address_suggestions.dart';
 import 'sign_up_components.dart';
 
+enum _AddressSearchStatus { idle, loading, ready, empty, error }
+
 class AddressSuggestionField extends StatefulWidget {
   const AddressSuggestionField({
     super.key,
@@ -25,7 +27,7 @@ class AddressSuggestionField extends StatefulWidget {
 class _AddressSuggestionFieldState extends State<AddressSuggestionField> {
   final _focus = FocusNode(debugLabel: 'Address suggestions');
   int _generation = 0;
-  bool _empty = false;
+  _AddressSearchStatus _status = _AddressSearchStatus.idle;
   @override
   void dispose() {
     _generation++;
@@ -42,17 +44,25 @@ class _AddressSuggestionFieldState extends State<AddressSuggestionField> {
       optionsBuilder: (value) async {
         final generation = ++_generation;
         if (value.text.trim().isEmpty) {
-          if (mounted) setState(() => _empty = false);
+          if (mounted) setState(() => _status = _AddressSearchStatus.idle);
           return const [];
         }
+        setState(() => _status = _AddressSearchStatus.loading);
         List<AddressSuggestion> results;
         try {
           results = await widget.source.search(value.text);
         } catch (_) {
-          results = [];
+          if (mounted && generation == _generation) {
+            setState(() => _status = _AddressSearchStatus.error);
+          }
+          return const [];
         }
         if (!mounted || generation != _generation) return const [];
-        setState(() => _empty = results.isEmpty);
+        setState(
+          () => _status = results.isEmpty
+              ? _AddressSearchStatus.empty
+              : _AddressSearchStatus.ready,
+        );
         return results;
       },
       onSelected: widget.onSelected,
@@ -68,9 +78,13 @@ class _AddressSuggestionFieldState extends State<AddressSuggestionField> {
         onTapOutside: (_) => focus.unfocus(),
         onSubmitted: (_) => submit(),
         decoration: signUpDecoration('Enter your address').copyWith(
-          helperText: _empty
-              ? 'No demo suggestions. Enter your address manually.'
-              : null,
+          helperText: switch (_status) {
+            _AddressSearchStatus.loading => 'Searching addresses...',
+            _AddressSearchStatus.empty =>
+              'No demo suggestions. Enter your address manually.',
+            _AddressSearchStatus.error => 'Unable to search addresses. Try again or enter your address manually.',
+            _ => null,
+          },
           helperMaxLines: 3,
         ),
       ),

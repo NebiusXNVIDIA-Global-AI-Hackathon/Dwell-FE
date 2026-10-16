@@ -69,6 +69,5 @@ final homeCases = List<HomeCaseData>.unmodifiable([
     ],
   ),
 ]);
-final homeCurrentCase = homeCases.first;
 const homeAttentionMessage =
     'Pest and heat issues have been reported a lot in your building lately.';
