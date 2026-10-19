@@ -1,3 +1,5 @@
+import 'package:lucide_icons_flutter/lucide_icons_600.dart';
+import 'package:lucide_icons_flutter/lucide_icons_500.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -144,7 +146,7 @@ class _CaseSortMenuState extends State<CaseSortMenu> {
               ),
               const SizedBox(width: 6),
               Icon(
-                _isOpen ? LucideIcons.chevronUp600 : LucideIcons.chevronDown500,
+                _isOpen ? LucideIcons600.chevronUp : LucideIcons500.chevronDown,
                 color: textColor,
                 size: 14,
               ),

@@ -1,3 +1,4 @@
+import 'package:lucide_icons_flutter/lucide_icons_300.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -12,31 +13,31 @@ class EvidenceAddSheet extends StatelessWidget {
       EvidenceSource.photo,
       'Take Photo',
       'Document the issue now',
-      LucideIcons.camera300,
+      LucideIcons300.camera,
     ),
     (
       EvidenceSource.library,
       'Upload from library',
       'Choose existing photos or videos',
-      LucideIcons.image300,
+      LucideIcons300.image,
     ),
     (
       EvidenceSource.video,
       'Record Video',
       'Capture a video of the issue',
-      LucideIcons.video300,
+      LucideIcons300.video,
     ),
     (
       EvidenceSource.audio,
       'Record Audio',
       'Describe the issue or record the sound',
-      LucideIcons.mic300,
+      LucideIcons300.mic,
     ),
     (
       EvidenceSource.document,
       'Upload Documents',
       'Notice, letters, leases, etc.',
-      LucideIcons.fileText300,
+      LucideIcons300.fileText,
     ),
   ];
   @override
