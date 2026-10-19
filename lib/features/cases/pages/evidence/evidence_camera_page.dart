@@ -1,3 +1,5 @@
+import 'package:lucide_icons_flutter/lucide_icons_300.dart';
+
 import 'dart:async';
 
 import 'package:camera/camera.dart';
@@ -443,7 +445,7 @@ class _EvidenceCameraPageState extends State<EvidenceCameraPage>
                         height: 24,
                         child: CircularProgressIndicator(color: Colors.black),
                       )
-                    : const Icon(LucideIcons.camera300, size: 32),
+                    : const Icon(LucideIcons300.camera, size: 32),
               ),
             ),
           ),

@@ -1,3 +1,5 @@
+import 'package:lucide_icons_flutter/lucide_icons_300.dart';
+
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -290,7 +292,7 @@ class _EvidenceDocumentsPageState extends ConsumerState<EvidenceDocumentsPage> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   const Icon(
-                                    LucideIcons.fileText300,
+                                    LucideIcons300.fileText,
                                     size: 60,
                                     color: Color(0xFF243B53),
                                   ),

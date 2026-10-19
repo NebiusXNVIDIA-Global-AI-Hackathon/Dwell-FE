@@ -682,7 +682,12 @@ class _CaseCreationPageState extends ConsumerState<CaseCreationPage>
                 top: !kIsWeb,
                 child: Padding(
                   // Native keeps its SafeArea inset and 20px design gap.
-                  padding: const EdgeInsets.fromLTRB(20, kIsWeb ? 40 : 20, 20, 24),
+                  padding: const EdgeInsets.fromLTRB(
+                    20,
+                    kIsWeb ? 40 : 20,
+                    20,
+                    24,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

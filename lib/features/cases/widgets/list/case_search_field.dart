@@ -1,3 +1,4 @@
+import 'package:lucide_icons_flutter/lucide_icons_500.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -29,7 +30,7 @@ class CaseSearchField extends StatelessWidget {
           hintText: 'Search Cases',
           hintStyle: TextStyle(color: Color(0xFFA8A8A8), fontSize: 16),
           prefixIcon: const Icon(
-            LucideIcons.search500,
+            LucideIcons500.search,
             color: Color(0xFF667685),
             size: 28,
           ),
