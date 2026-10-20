@@ -11,6 +11,7 @@ class ThresholdBar extends StatelessWidget {
     required this.total,
     required this.label,
     required this.hint,
+    this.leading,
   });
 
   final int current;
@@ -22,64 +23,75 @@ class ThresholdBar extends StatelessWidget {
   /// `2 more needed`
   final String hint;
 
+  /// 블록 왼쪽에 서는 그림
+  final Widget? leading;
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(Gap.card),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: Gap.md),
       decoration: BoxDecoration(
-        color: AppColors.chartTrack,
+        color: AppColors.statTile,
         borderRadius: BorderRadius.circular(10),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        spacing: Gap.sm,
+      child: Row(
+        spacing: 14,
         children: [
-          Row(
-            spacing: Gap.sm,
-            children: [
-              Expanded(
-                child: Text(
-                  label,
-                  maxLines: 2,
-                  style: const TextStyle(
-                    color: AppColors.textTitle,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              // 큰 글씨에서 라벨과 경쟁한다 — 둘 다 줄어들 수 있게
-              Flexible(
-                child: Text(
-                  hint,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppColors.textMuted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          // 칸 수 = 필요 건수. 채운 칸이 현재 건수
-          Row(
-            spacing: 2,
-            children: [
-              for (var i = 0; i < total; i++)
-                Expanded(
-                  child: Container(
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: i < current
-                          ? AppColors.chartInk
-                          : AppColors.surface,
-                      borderRadius: BorderRadius.circular(3),
+          ?leading,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: Gap.sm,
+              children: [
+                Row(
+                  spacing: Gap.sm,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        label,
+                        maxLines: 2,
+                        style: const TextStyle(
+                          color: AppColors.chartInk,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
-                  ),
+                    // 큰 글씨에서 라벨과 경쟁한다 — 둘 다 줄어들 수 있게
+                    Flexible(
+                      child: Text(
+                        hint,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.chartNeutral,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-            ],
+                // 칸 수 = 필요 건수. 채운 칸이 현재 건수
+                Row(
+                  spacing: 2,
+                  children: [
+                    for (var i = 0; i < total; i++)
+                      Expanded(
+                        child: Container(
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: i < current
+                                ? AppColors.chartInk
+                                : AppColors.chartTrack,
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ],
       ),

@@ -5,8 +5,8 @@ import 'package:material_ui/material_ui.dart';
 import '../../../../core/app_colors.dart';
 import '../../../../core/theme.dart';
 
-/// 아크 게이지 — 값 + 시 평균 마커 + 스케일
-/// 값이 null 이면 저데이터: 트랙만 그리고 중앙에 짧은 선
+/// 반원 게이지 — 값 + 시 평균 마커 + 0~상한 스케일
+/// 값이 null 이면 저데이터: 트랙만 그리고 가운데에 짧은 선
 class GaugeChart extends StatelessWidget {
   const GaugeChart({
     super.key,
@@ -18,7 +18,7 @@ class GaugeChart extends StatelessWidget {
     this.markerValue,
     this.markerLabel,
     this.fillColor = AppColors.chartDanger,
-    this.height = 176,
+    this.height = 156,
   });
 
   final int? value;
@@ -44,8 +44,7 @@ class GaugeChart extends StatelessWidget {
       height: height,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final size = Size(constraints.maxWidth, height);
-          final metrics = _GaugeMetrics(size);
+          final metrics = _GaugeMetrics(Size(constraints.maxWidth, height));
           final marker = markerValue == null
               ? null
               : metrics.pointAt(markerValue! / maxValue);
@@ -63,27 +62,28 @@ class GaugeChart extends StatelessWidget {
                   ),
                 ),
               ),
-              // 중앙 값
+              // 반원 안쪽 — 값과 설명
               Positioned(
                 left: 0,
                 right: 0,
-                top: metrics.center.dy - 34,
+                top: metrics.center.dy - 54,
                 child: Column(
-                  spacing: Gap.xs,
                   children: [
                     if (value == null)
                       Container(
                         width: 20,
                         height: 2,
+                        margin: const EdgeInsets.symmetric(
+                          vertical: Gap.screenH,
+                        ),
                         color: AppColors.textMuted,
-                        margin: const EdgeInsets.symmetric(vertical: Gap.card),
                       )
                     else
                       Text(
                         '$value',
                         style: const TextStyle(
-                          color: AppColors.textTitle,
-                          fontSize: 40,
+                          color: AppColors.chartInk,
+                          fontSize: 38,
                           fontWeight: FontWeight.w700,
                           height: 1.1,
                         ),
@@ -92,8 +92,8 @@ class GaugeChart extends StatelessWidget {
                       caption,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
-                        color: AppColors.textMuted,
-                        fontSize: 13,
+                        color: AppColors.textSubtle,
+                        fontSize: 15,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -102,30 +102,33 @@ class GaugeChart extends StatelessWidget {
               ),
               // 스케일 양끝
               Positioned(
-                left: metrics.startLabelLeft,
-                top: metrics.labelTop,
+                left: metrics.scaleInset,
+                top: metrics.center.dy + Gap.card,
                 child: _ScaleLabel(text: startLabel),
               ),
               Positioned(
-                right: metrics.startLabelLeft,
-                top: metrics.labelTop,
+                right: metrics.scaleInset,
+                top: metrics.center.dy + Gap.card,
                 child: _ScaleLabel(text: endLabel),
               ),
               if (marker != null && markerLabel != null)
                 Positioned(
                   left: 0,
                   right: 0,
-                  top: math.max(marker.dy - 26, 0),
+                  top: math.max(marker.dy - 28, 0),
                   child: Align(
                     alignment: Alignment(
-                      ((marker.dx / size.width) * 2 - 1).clamp(-1.0, 1.0),
+                      ((marker.dx / metrics.size.width) * 2 - 1).clamp(
+                        -1.0,
+                        1.0,
+                      ),
                       0,
                     ),
                     child: Text(
                       markerLabel!,
                       style: const TextStyle(
                         color: AppColors.chartInk,
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -149,40 +152,36 @@ class _ScaleLabel extends StatelessWidget {
     return Text(
       text,
       style: const TextStyle(
-        color: AppColors.textMuted,
-        fontSize: 11,
+        color: AppColors.chartNeutral,
+        fontSize: 13,
         fontWeight: FontWeight.w500,
       ),
     );
   }
 }
 
-/// 아크 기하 — 페인터와 라벨 배치가 같은 값을 쓴다
+/// 반원 기하 — 페인터와 라벨 배치가 같은 값을 쓴다
 class _GaugeMetrics {
   _GaugeMetrics(this.size)
-    : radius = math.min(
-        (size.width - 48) / 2,
-        (size.height - _markerLabelSpace - 24) / 1.5,
-      );
+    : radius = math.min((size.width - 28) / 2, size.height - 45);
 
-  static const _markerLabelSpace = 26.0;
-  static const startAngle = math.pi * 5 / 6; // 7시 30분 방향
-  static const sweepAngle = math.pi * 4 / 3; // 240도
+  static const stroke = 22.0;
+  static const startAngle = math.pi; // 9시 방향
+  static const sweepAngle = math.pi; // 반원
 
   final Size size;
   final double radius;
 
-  Offset get center => Offset(size.width / 2, _markerLabelSpace + radius);
+  Offset get center => Offset(size.width / 2, 12 + radius);
 
-  /// 0~1 위치의 아크 좌표
+  /// 0~1 위치의 호 좌표
   Offset pointAt(double ratio) {
     final angle = startAngle + sweepAngle * ratio.clamp(0.0, 1.0);
     return center + Offset(math.cos(angle) * radius, math.sin(angle) * radius);
   }
 
-  /// 아크 끝 아래 스케일 라벨 위치
-  double get labelTop => center.dy + radius * 0.5 + Gap.sm;
-  double get startLabelLeft => size.width / 2 - radius * 0.92;
+  /// 호 끝 아래 스케일 라벨 위치
+  double get scaleInset => (size.width / 2 - radius) + Gap.xs;
 }
 
 class _GaugePainter extends CustomPainter {
@@ -191,8 +190,6 @@ class _GaugePainter extends CustomPainter {
     required this.markerRatio,
     required this.fillColor,
   });
-
-  static const _stroke = 14.0;
 
   /// null 이면 채우지 않는다
   final double? ratio;
@@ -204,13 +201,12 @@ class _GaugePainter extends CustomPainter {
     final metrics = _GaugeMetrics(size);
     final rect = Rect.fromCircle(
       center: metrics.center,
-      radius: metrics.radius,
+      radius: metrics.radius - _GaugeMetrics.stroke / 2,
     );
 
     final track = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = _stroke
-      ..strokeCap = StrokeCap.round
+      ..strokeWidth = _GaugeMetrics.stroke
       ..color = AppColors.chartTrack;
 
     canvas.drawArc(
@@ -225,8 +221,7 @@ class _GaugePainter extends CustomPainter {
     if (value != null && value > 0) {
       final fill = Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = _stroke
-        ..strokeCap = StrokeCap.round
+        ..strokeWidth = _GaugeMetrics.stroke
         ..color = fillColor;
 
       canvas.drawArc(
@@ -241,11 +236,18 @@ class _GaugePainter extends CustomPainter {
     final marker = markerRatio;
     if (marker == null) return;
 
-    // 시 평균 — 흰 테두리를 둘러 아크 위에서 떨어져 보이게
+    // 시 평균 — 흰 테두리를 둘러 호 위에서 떨어져 보이게
     final point = metrics.pointAt(marker);
-    canvas.drawCircle(point, 6, Paint()..color = AppColors.surface);
-    canvas.drawCircle(point, 4, Paint()..color = AppColors.chartInk);
+    final inner = Offset(
+      metrics.center.dx + (point.dx - metrics.center.dx) * _markerPull,
+      metrics.center.dy + (point.dy - metrics.center.dy) * _markerPull,
+    );
+    canvas.drawCircle(inner, 7, Paint()..color = AppColors.surface);
+    canvas.drawCircle(inner, 5, Paint()..color = AppColors.chartInk);
   }
+
+  /// 마커를 호 두께 가운데로 당긴다
+  static const _markerPull = 0.9;
 
   @override
   bool shouldRepaint(_GaugePainter old) =>

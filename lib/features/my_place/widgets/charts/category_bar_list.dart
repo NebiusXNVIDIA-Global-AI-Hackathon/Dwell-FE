@@ -60,8 +60,8 @@ class _CategoryRow extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  color: AppColors.textTitle,
-                  fontSize: 14,
+                  color: AppColors.textSubtle,
+                  fontSize: 12,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -69,8 +69,8 @@ class _CategoryRow extends StatelessWidget {
             Text(
               '$value',
               style: const TextStyle(
-                color: AppColors.textTitle,
-                fontSize: 14,
+                color: AppColors.chartInk,
+                fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
             ),
