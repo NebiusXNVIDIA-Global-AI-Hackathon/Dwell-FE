@@ -10,6 +10,9 @@ import 'neighbor_posts_mock.dart';
 const demoBuildingAddress = '245 W 107th St, Apt 4B, New York, NY 10025';
 const demoBuildingBbl = '1-01863-0029';
 
+/// 호수를 뺀 건물 주소 — 목록 부제에 쓴다
+const demoBuildingAddressShort = '245 W 107th St';
+
 const mockAllSignals = <BuildingSignal>[
   BuildingSignal(
     signalId: 101,

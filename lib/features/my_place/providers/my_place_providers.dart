@@ -38,11 +38,13 @@ final inspectionGuideProvider = FutureProvider.family<InspectionGuide?, int>(
 );
 
 final landlordInsightProvider = FutureProvider<LandlordInsight>(
-  (ref) async => mockLandlordInsight,
+  (ref) async =>
+      showLowDataDemo ? mockLandlordInsightLowData : mockLandlordInsight,
 );
 
 final recordsInsightProvider = FutureProvider<RecordsInsight>(
-  (ref) async => mockRecordsInsight,
+  (ref) async =>
+      showLowDataDemo ? mockRecordsInsightLowData : mockRecordsInsight,
 );
 
 final hpdHistoryProvider = FutureProvider<HpdHistory>(
@@ -51,7 +53,7 @@ final hpdHistoryProvider = FutureProvider<HpdHistory>(
 
 /// 같은 소유주 집계는 서버에 없다 — 목업만
 final ownerPortfolioProvider = Provider<OwnerPortfolio>(
-  (ref) => mockOwnerPortfolio,
+  (ref) => showLowDataDemo ? mockOwnerPortfolioLowData : mockOwnerPortfolio,
 );
 
 /// 게시물 원천 — 커뮤니티 · 시그널 상세 · Insights Tenants 가 전부 여기서 파생
@@ -90,9 +92,14 @@ final landlordPostsProvider = Provider<List<NeighborPost>>(
 );
 
 /// Tenants 탭 집계 — 타일 숫자와 탭 숫자가 한 곳에서 나온다
-final landlordPostSummaryProvider = FutureProvider<LandlordPostSummary>(
-  (ref) async => buildLandlordPostSummary(ref.watch(landlordPostsProvider)),
-);
+final landlordPostSummaryProvider = FutureProvider<LandlordPostSummary>((
+  ref,
+) async {
+  final posts = ref.watch(landlordPostsProvider);
+  return buildLandlordPostSummary(
+    showLowDataDemo ? posts.take(2).toList() : posts,
+  );
+});
 
 /// Posts about landlord — 검색 · 필터 · 정렬 · 페이징을 서버와 같은 순서로 적용
 final landlordPostPageProvider =
