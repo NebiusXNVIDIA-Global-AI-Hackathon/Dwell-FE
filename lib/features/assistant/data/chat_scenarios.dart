@@ -38,6 +38,12 @@ const _byThreadId = <String, ChatScenario>{
   'g-002': _general,
 };
 
+// 대화에 사용자 입력이 섞이는 경우 — 화면을 열기 전에 등록해 둔다
+final _runtime = <String, ChatScenario>{};
+
+void registerScenario(String threadId, ChatScenario scenario) =>
+    _runtime[threadId] = scenario;
+
 /// 없는 스레드는 빈 시나리오 — 화면은 뜨고 대화만 비어 있음
 ChatScenario scenarioFor(String threadId) =>
-    _byThreadId[threadId] ?? const ChatScenario();
+    _runtime[threadId] ?? _byThreadId[threadId] ?? const ChatScenario();
