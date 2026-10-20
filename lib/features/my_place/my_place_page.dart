@@ -64,7 +64,7 @@ class MyPlacePage extends ConsumerWidget {
                       description:
                           "See your landlord's past responses and building "
                           'records.',
-                      onTap: () => _notReady(context, 'Building Insights'),
+                      onTap: () => context.push('/my-place/insights'),
                     ),
                   ],
                 ),
