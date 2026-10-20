@@ -1,3 +1,5 @@
+// 같은 소유주 집계는 아직 서버에 없다 — 목업 전용
+
 /// 같은 소유주의 건물 1채 — Owner 탭 · Other buildings
 class OwnerBuilding {
   final String address;

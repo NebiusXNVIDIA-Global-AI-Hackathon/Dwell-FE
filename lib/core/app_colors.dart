@@ -52,6 +52,20 @@ abstract final class AppColors {
   static const infoSoft = Color(0xFFDCE8F8);
   static const focusSoft = Color(0xFFE0ECFD);
 
+  // My Place 헤더 카드
+  static const headerAddress = Color(0xFF94A3B2); // 네이비 헤더 위 주소
+  static const risingHighlight = Color(0xFFFFF7A2); // Rising Issue 강조 글자
+  static const risingAction = Color(0xFF43808B); // 카드 안 버튼
+
+  // 게시물 · 인사이트 카드
+  static const insightCard = Color(0xFFEDEFF0); // Deaver's insight 배경
+  static const insightBody = Color(0xFF3D4A57); // insight 본문
+  static const chipSurface = Color(0xFFF5F5F5); // 태그 칩 배경
+  static const boardFreeSoft = Color(0xFFEAECE4); // Free Board 배지
+  static const boardFreeText = Color(0xFF415F30);
+  static const boardTipSoft = Color(0xFFF9F1C4); // Tip 배지
+  static const boardTipText = Color(0xFFFFAA00);
+
   // 연한 배경 위 글자 — 전경색을 그대로 쓰면 대비 부족
   static const warningText = Color(0xFFC46A00);
   static const infoText = Color(0xFF3B6FD8);

@@ -1,43 +1,60 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../data/building_issues_mock.dart';
+import '../data/building_signals_mock.dart';
 import '../data/insights_mock.dart';
 import '../data/landlord_posts_mock.dart';
 import '../data/neighbor_posts_mock.dart';
-import '../models/building_issue.dart';
-import '../models/building_records.dart';
-import '../models/landlord_record.dart';
+import '../models/building_signal.dart';
+import '../models/hpd_history.dart';
+import '../models/inspection.dart';
+import '../models/landlord_insight.dart';
+import '../models/landlord_post_query.dart';
+import '../models/landlord_post_summary.dart';
 import '../models/neighbor_post.dart';
 import '../models/owner_portfolio.dart';
+import '../models/paged.dart';
+import '../models/place_summary.dart';
+import '../models/records_insight.dart';
 
-/// 건물 이슈 — 0개면 All clear 카드, 2개 이상이면 캐러셀
-final buildingIssuesProvider = Provider<List<BuildingIssue>>(
-  (ref) => mockBuildingIssues,
+/// 목업을 서버 응답 자리에 끼워 둔다 — 연동 시 이 함수들만 교체
+final placeSummaryProvider = FutureProvider<PlaceSummary>(
+  (ref) async => PlaceSummary(
+    address: demoBuildingAddress,
+    bbl: demoBuildingBbl,
+    risingIssues: mockRisingSignals,
+  ),
 );
 
-final buildingIssueProvider = Provider.family<BuildingIssue?, String>((
-  ref,
-  issueId,
-) {
-  for (final issue in ref.watch(buildingIssuesProvider)) {
-    if (issue.id == issueId) return issue;
-  }
-  return null;
-});
-
-final landlordRecordProvider = Provider<LandlordRecord>(
-  (ref) => mockLandlordRecord,
+final buildingSignalsProvider = FutureProvider<BuildingSignals>(
+  (ref) async => mockBuildingSignals,
 );
 
-final buildingRecordsProvider = Provider<BuildingRecords>(
-  (ref) => mockBuildingRecords,
+final signalDetailProvider = FutureProvider.family<SignalDetail?, int>(
+  (ref, signalId) async => signalDetailFor(signalId),
 );
 
+final inspectionGuideProvider = FutureProvider.family<InspectionGuide?, int>(
+  (ref, signalId) async => mockInspectionGuides[signalId],
+);
+
+final landlordInsightProvider = FutureProvider<LandlordInsight>(
+  (ref) async => mockLandlordInsight,
+);
+
+final recordsInsightProvider = FutureProvider<RecordsInsight>(
+  (ref) async => mockRecordsInsight,
+);
+
+final hpdHistoryProvider = FutureProvider<HpdHistory>(
+  (ref) async => mockHpdHistory,
+);
+
+/// 같은 소유주 집계는 서버에 없다 — 목업만
 final ownerPortfolioProvider = Provider<OwnerPortfolio>(
   (ref) => mockOwnerPortfolio,
 );
 
-/// 게시물 원천 — 커뮤니티 · 시그널 상세 · Insights Tenants · 집주인 언급 글이 전부 여기서 파생
+/// 게시물 원천 — 커뮤니티 · 시그널 상세 · Insights Tenants 가 전부 여기서 파생
 final neighborPostsProvider =
     NotifierProvider<NeighborPostsNotifier, List<NeighborPost>>(
       NeighborPostsNotifier.new,
@@ -52,46 +69,87 @@ class NeighborPostsNotifier extends Notifier<List<NeighborPost>> {
 
   void replace(NeighborPost post) => state = [
     for (final item in state)
-      if (item.id == post.id) post else item,
+      if (item.postId == post.postId) post else item,
   ];
 
-  void remove(String id) => state = [
+  void remove(int postId) => state = [
     for (final post in state)
-      if (post.id != id) post,
+      if (post.postId != postId) post,
   ];
 
   static List<NeighborPost> _sorted(List<NeighborPost> posts) =>
-      posts..sort((a, b) => b.postedAt.compareTo(a.postedAt));
+      posts..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 }
 
-/// 이슈 태그로 걸러낸 글 — 시그널 상세
-final postsByIssueProvider = Provider.family<List<NeighborPost>, String>((
-  ref,
-  issueId,
-) {
-  final issue = ref.watch(buildingIssueProvider(issueId));
-  if (issue == null) return const [];
-
-  final wanted = issue.postTags.toSet();
-  return [
-    for (final post in ref.watch(neighborPostsProvider))
-      if (post.tags.any(wanted.contains)) post,
-  ];
-});
-
-/// 집주인 언급 글만 — Insights Tenants · Posts about landlord
+/// 집주인 언급 글만
 final landlordPostsProvider = Provider<List<NeighborPost>>(
   (ref) => [
     for (final post in ref.watch(neighborPostsProvider))
-      if (post.topic != null) post,
+      if (post.landlordTopic != null) post,
   ],
 );
 
-/// 주제별 개수 — 집계 타일과 주제 탭이 같은 값을 본다
-final landlordPostCountsProvider = Provider<Map<PostTopic, int>>((ref) {
-  final counts = {for (final topic in PostTopic.values) topic: 0};
-  for (final post in ref.watch(landlordPostsProvider)) {
-    counts[post.topic!] = counts[post.topic]! + 1;
+/// Tenants 탭 집계 — 타일 숫자와 탭 숫자가 한 곳에서 나온다
+final landlordPostSummaryProvider = FutureProvider<LandlordPostSummary>(
+  (ref) async => buildLandlordPostSummary(ref.watch(landlordPostsProvider)),
+);
+
+/// Posts about landlord — 검색 · 필터 · 정렬 · 페이징을 서버와 같은 순서로 적용
+final landlordPostPageProvider =
+    FutureProvider.family<Paged<NeighborPost>, LandlordPostQuery>((
+      ref,
+      query,
+    ) async {
+      final matched = [
+        for (final post in ref.watch(landlordPostsProvider))
+          if (_matches(post, query)) post,
+      ];
+
+      matched.sort(
+        (a, b) => query.sort == PostSort.newest
+            ? b.createdAt.compareTo(a.createdAt)
+            : a.createdAt.compareTo(b.createdAt),
+      );
+
+      final start = query.page * query.size;
+      final end = start + query.size;
+
+      return Paged(
+        content: matched.sublist(
+          start.clamp(0, matched.length),
+          end.clamp(0, matched.length),
+        ),
+        page: query.page,
+        size: query.size,
+        totalElements: matched.length,
+        hasNext: end < matched.length,
+      );
+    });
+
+bool _matches(NeighborPost post, LandlordPostQuery query) {
+  if (query.topics.isNotEmpty && !query.topics.contains(post.landlordTopic)) {
+    return false;
   }
-  return counts;
-});
+  if (query.floorBands.isNotEmpty &&
+      !query.floorBands.contains(post.floorBand)) {
+    return false;
+  }
+  if (query.posted != null && post.createdAt.isBefore(_since(query.posted!))) {
+    return false;
+  }
+  if (query.query.isEmpty) return true;
+
+  final needle = query.query.toLowerCase();
+  return post.title.toLowerCase().contains(needle) ||
+      post.body.toLowerCase().contains(needle);
+}
+
+/// 데모 기준 시각에서 거슬러 올라간다
+DateTime _since(PostedWindow window) {
+  final now = DateTime(2026, 10, 14);
+  return switch (window) {
+    PostedWindow.lastMonth => now.subtract(const Duration(days: 30)),
+    PostedWindow.last6Months => now.subtract(const Duration(days: 182)),
+    PostedWindow.lastYear => now.subtract(const Duration(days: 365)),
+  };
+}
