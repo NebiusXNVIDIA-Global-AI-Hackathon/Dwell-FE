@@ -1,88 +1,135 @@
 // Insights 4탭 · HPD History · Other buildings
 // 저데이터 변형은 같은 화면의 다른 입력 — 숫자를 0 으로 채운 것이 아니다
 
-import '../models/building_records.dart';
-import '../models/landlord_record.dart';
+import '../models/data_status.dart';
+import '../models/hpd_history.dart';
+import '../models/landlord_insight.dart';
+import '../models/landlord_post_summary.dart';
+import '../models/neighbor_post.dart';
+import '../models/open_closed_count.dart';
 import '../models/owner_portfolio.dart';
+import '../models/records_insight.dart';
+import 'landlord_posts_mock.dart';
 
-const mockLandlordRecord = LandlordRecord(
-  avgDaysToFix: 47,
-  cityAvgDaysToFix: 30,
-  violationsOpen: 2,
-  violationsTotal: 7,
-  classCOpen: 1,
-  followUpDefaultHours: 72,
-  followUpActualHours: 48,
-  hasEnoughData: true,
-  fixedViolations: 5,
-  requiredViolations: 3,
+const mockLandlordInsight = LandlordInsight(
+  trackRecord: TrackRecord(
+    rating: LandlordRating.slowToFix,
+    avgDaysToFix: 47,
+    nycAvgDaysToFix: 30,
+    gaugeMaxDays: 90,
+    fixedViolations: 5,
+    minimumRequired: 3,
+    violations: OpenClosedCount(total: 7, open: 2, closed: 5),
+    classC: OpenClosedCount(total: 1, open: 1, closed: 0),
+    source: 'Source: NYC HPD violations, 3 yrs · computed',
+  ),
+  followUpTimer: FollowUpTimer(
+    defaultHours: 72,
+    appliedHours: 48,
+    reason: FollowUpReason.shortened,
+  ),
 );
 
-const mockLandlordRecordLowData = LandlordRecord(
-  avgDaysToFix: 0,
-  cityAvgDaysToFix: 30,
-  violationsOpen: 1,
-  violationsTotal: 2,
-  classCOpen: 0,
-  followUpDefaultHours: 72,
-  followUpActualHours: 72,
-  hasEnoughData: false,
-  fixedViolations: 1,
-  requiredViolations: 3,
+const mockLandlordInsightLowData = LandlordInsight(
+  trackRecord: TrackRecord(
+    rating: LandlordRating.notEnoughData,
+    nycAvgDaysToFix: 30,
+    gaugeMaxDays: 90,
+    fixedViolations: 1,
+    minimumRequired: 3,
+    violations: OpenClosedCount(total: 2, open: 1, closed: 1),
+    classC: OpenClosedCount(total: 0, open: 0, closed: 0),
+    source: 'Source: NYC HPD · 1 closed violation (3+ needed)',
+  ),
+  followUpTimer: FollowUpTimer(
+    defaultHours: 72,
+    appliedHours: 72,
+    reason: FollowUpReason.notEnoughHistory,
+  ),
 );
 
 // 민원 18건이 36개월에 퍼진 모양 — 겨울에 몰린다
-const _monthlyComplaints = <int>[
+const _monthlyCounts = <int>[
   0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, //
   0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 2, 1, //
   1, 2, 0, 0, 0, 0, 0, 0, 1, 2, 1, 2, //
 ];
 
-const _quarterly = <QuarterTally>[
-  (complaints: 1, violations: 0),
-  (complaints: 0, violations: 0),
-  (complaints: 1, violations: 1),
-  (complaints: 1, violations: 0),
-  (complaints: 1, violations: 0),
-  (complaints: 2, violations: 1),
-  (complaints: 1, violations: 0),
-  (complaints: 2, violations: 1),
-  (complaints: 2, violations: 1),
-  (complaints: 3, violations: 1),
-  (complaints: 2, violations: 1),
-  (complaints: 2, violations: 1),
-];
+/// 2023-11 부터 36개월
+List<MonthCount> _monthlySeries() {
+  final series = <MonthCount>[];
+  var year = 2023;
+  var month = 11;
+  for (final count in _monthlyCounts) {
+    series.add(
+      MonthCount(
+        month: '$year-${month.toString().padLeft(2, '0')}',
+        count: count,
+      ),
+    );
+    month++;
+    if (month > 12) {
+      month = 1;
+      year++;
+    }
+  }
+  return series;
+}
 
-const mockBuildingRecords = BuildingRecords(
-  complaints: 18,
-  complaintsOpen: 6,
-  violations: 7,
-  violationsOpen: 2,
-  byCategory: {'Water leak': 6, 'Heat / hot water': 5, 'Pests': 4, 'Mold': 3},
-  repeatCategory: 'Water leak',
-  repeatCount: 3,
-  monthlySeries: _monthlyComplaints,
-  byClass: [
-    (label: 'Class A', total: 3, open: 0),
-    (label: 'Class B', total: 3, open: 1),
-    (label: 'Class C', total: 1, open: 1),
+final mockRecordsInsight = RecordsInsight(
+  status: DataStatus.ok,
+  periodYears: 3,
+  complaints: const OpenClosedCount(total: 18, open: 6, closed: 12),
+  violations: const OpenClosedCount(total: 7, open: 2, closed: 5),
+  minimumRequired: 3,
+  complaintsByCategory: const [
+    CategoryCount(category: 'Water leak', count: 6),
+    CategoryCount(category: 'Heat / hot water', count: 5),
+    CategoryCount(category: 'Pests', count: 4),
+    CategoryCount(category: 'Mold', count: 3),
   ],
-  quarterly: _quarterly,
-  quarterlyStartYear: 2024,
-  hasEnoughData: true,
+  repeatedIssue: const CategoryCount(category: 'Water leak', count: 3),
+  complaintsPerMonth: _monthlySeries(),
+  source: 'Source: NYC HPD · updated daily',
 );
 
-const mockBuildingRecordsLowData = BuildingRecords(
-  complaints: 2,
-  complaintsOpen: 0,
-  violations: 0,
-  violationsOpen: 0,
-  byCategory: {},
-  monthlySeries: [],
-  byClass: [],
-  quarterly: [],
-  quarterlyStartYear: 2024,
-  hasEnoughData: false,
+const mockRecordsInsightLowData = RecordsInsight(
+  status: DataStatus.notEnoughData,
+  periodYears: 3,
+  complaints: OpenClosedCount(total: 2, open: 0, closed: 2),
+  violations: OpenClosedCount(total: 0, open: 0, closed: 0),
+  minimumRequired: 3,
+  source: 'Source: NYC HPD · updated daily',
+);
+
+// 12분기 — 민원 18 · 위반 7 로 Records 탭 합계와 맞춘다
+const _quarterCounts = <QuarterCount>[
+  QuarterCount(quarter: '2024Q1', complaints: 1, violations: 0),
+  QuarterCount(quarter: '2024Q2', complaints: 0, violations: 0),
+  QuarterCount(quarter: '2024Q3', complaints: 1, violations: 1),
+  QuarterCount(quarter: '2024Q4', complaints: 1, violations: 0),
+  QuarterCount(quarter: '2025Q1', complaints: 1, violations: 0),
+  QuarterCount(quarter: '2025Q2', complaints: 2, violations: 1),
+  QuarterCount(quarter: '2025Q3', complaints: 1, violations: 0),
+  QuarterCount(quarter: '2025Q4', complaints: 2, violations: 1),
+  QuarterCount(quarter: '2026Q1', complaints: 2, violations: 1),
+  QuarterCount(quarter: '2026Q2', complaints: 3, violations: 1),
+  QuarterCount(quarter: '2026Q3', complaints: 2, violations: 1),
+  QuarterCount(quarter: '2026Q4', complaints: 2, violations: 1),
+];
+
+const mockHpdHistory = HpdHistory(
+  source: 'Source: NYC HPD violations · 3 yrs',
+  periodYears: 3,
+  complaints: OpenClosedCount(total: 18, open: 6, closed: 12),
+  violations: OpenClosedCount(total: 7, open: 2, closed: 5),
+  violationsByClass: [
+    ViolationClassCount(violationClass: 'Class A', total: 3, open: 0),
+    ViolationClassCount(violationClass: 'Class B', total: 3, open: 1),
+    ViolationClassCount(violationClass: 'Class C', total: 1, open: 1),
+  ],
+  perQuarter: _quarterCounts,
+  hpdOnlineUrl: 'https://hpdonline.nyc.gov',
 );
 
 const mockOwnerPortfolio = OwnerPortfolio(
@@ -145,7 +192,30 @@ const mockOwnerPortfolioLowData = OwnerPortfolio(
   ],
 );
 
-/// Records · HPD History 출처 문구
-const hpdRecordsSource = 'Source: NYC HPD · updated daily';
-const hpdViolationsSource = 'Source: NYC HPD violations · 3 yrs';
-const hpdOnlineUrl = 'https://hpdonline.nyc.gov';
+/// Tenants 탭 — 글 목록에서 집계한다. 숫자를 따로 적지 않는다
+LandlordPostSummary buildLandlordPostSummary(List<NeighborPost> posts) {
+  final counts = {for (final topic in PostTopic.values) topic: 0};
+  for (final post in posts) {
+    final topic = post.landlordTopic;
+    if (topic != null) counts[topic] = counts[topic]! + 1;
+  }
+
+  final preview = [...posts]
+    ..sort((a, b) => b.likeCount.compareTo(a.likeCount));
+
+  const minimum = 3;
+  final enough = posts.length >= minimum;
+
+  return LandlordPostSummary(
+    status: enough ? DataStatus.ok : DataStatus.notEnoughData,
+    postCount: posts.length,
+    minimumRequired: minimum,
+    topicCounts: counts,
+    previewPosts: enough ? preview.take(3).toList() : const [],
+  );
+}
+
+final mockLandlordPostSummary = buildLandlordPostSummary(mockLandlordPosts);
+
+const landlordPostsSource =
+    'Source: Neighbor Community · posts mentioning the landlord · anonymous';
