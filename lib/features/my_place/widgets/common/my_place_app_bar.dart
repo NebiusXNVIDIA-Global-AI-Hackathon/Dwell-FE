@@ -12,11 +12,15 @@ class MyPlaceAppBar extends StatelessWidget {
     required this.title,
     required this.onBack,
     this.subtitle,
+    this.trailing,
   });
 
   final String title;
   final String? subtitle;
   final VoidCallback onBack;
+
+  /// 우상단 자리 — 내 글 상세의 ⋯ 메뉴
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -74,6 +78,7 @@ class MyPlaceAppBar extends StatelessWidget {
               ],
             ),
           ),
+          ?trailing,
         ],
       ),
     );

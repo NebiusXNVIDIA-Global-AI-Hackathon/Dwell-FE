@@ -78,7 +78,7 @@ class MyPlacePage extends ConsumerWidget {
                   title: 'Neighbor Community',
                   description:
                       'Ask neighbors and share tips about your building',
-                  onTap: () => _notReady(context, 'Neighbor Community'),
+                  onTap: () => context.push('/my-place/community'),
                 ),
               ),
               const SizedBox(height: Gap.xl),
@@ -93,12 +93,6 @@ class MyPlacePage extends ConsumerWidget {
       context.push('/my-place/check-unit/${signal.signalId}');
 
   void _openSignals(BuildContext context) => context.push('/my-place/signals');
-
-  void _notReady(BuildContext context, String name) {
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(SnackBar(content: Text('$name is not ready yet')));
-  }
 }
 
 /// 이슈 0 / 1 / 2개 이상으로 갈린다

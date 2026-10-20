@@ -82,7 +82,12 @@ class _Content extends StatelessWidget {
                 for (final post in signal.posts)
                   Padding(
                     padding: const EdgeInsets.only(bottom: Gap.card),
-                    child: NeighborPostCard(post: post),
+                    child: NeighborPostCard(
+                      post: post,
+                      onTap: () => context.push(
+                        '/my-place/community/post/${post.postId}',
+                      ),
+                    ),
                   ),
             ],
           ),

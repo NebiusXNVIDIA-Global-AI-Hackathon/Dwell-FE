@@ -11,16 +11,22 @@ class UnderlineTabs extends StatelessWidget {
     required this.labels,
     required this.selected,
     required this.onSelected,
+    this.fontSize = 13,
+    this.showBaseline = false,
   });
 
   final List<String> labels;
   final int selected;
   final ValueChanged<int> onSelected;
+  final double fontSize;
+
+  /// 탭 아래로 화면을 가로지르는 회색 선 — 커뮤니티만 쓴다
+  final bool showBaseline;
 
   @override
   Widget build(BuildContext context) {
     // 탭이 많으면 390 폭을 넘는다 — 웹 마우스 드래그까지 열어 둔다
-    return ScrollConfiguration(
+    final tabs = ScrollConfiguration(
       behavior: ScrollConfiguration.of(context).copyWith(
         dragDevices: {
           PointerDeviceKind.touch,
@@ -40,11 +46,23 @@ class UnderlineTabs extends StatelessWidget {
               _Tab(
                 label: labels[i],
                 selected: i == selected,
+                fontSize: fontSize,
                 onTap: () => onSelected(i),
               ),
           ],
         ),
       ),
+    );
+
+    if (!showBaseline) return tabs;
+
+    // 바탕선은 화면을 가로지르고, 탭은 왼쪽에서 시작한다
+    return Stack(
+      alignment: Alignment.bottomLeft,
+      children: [
+        Container(height: 3, color: AppColors.divider),
+        tabs,
+      ],
     );
   }
 }
@@ -53,11 +71,13 @@ class _Tab extends StatelessWidget {
   const _Tab({
     required this.label,
     required this.selected,
+    required this.fontSize,
     required this.onTap,
   });
 
   final String label;
   final bool selected;
+  final double fontSize;
   final VoidCallback onTap;
 
   @override
@@ -83,7 +103,7 @@ class _Tab extends StatelessWidget {
                     color: selected
                         ? AppColors.textTitle
                         : AppColors.textSubtle,
-                    fontSize: 13,
+                    fontSize: fontSize,
                     fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                   ),
                 ),

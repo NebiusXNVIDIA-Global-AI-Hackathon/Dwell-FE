@@ -135,14 +135,7 @@ class _TenantsTab extends ConsumerWidget {
       data: (data) => NeighborPostsCard(
         summary: data,
         onViewAll: () => context.push('/my-place/insights/landlord-posts'),
-        // 커뮤니티 화면은 아직 없다
-        onGoToCommunity: () => ScaffoldMessenger.of(context)
-          ..clearSnackBars()
-          ..showSnackBar(
-            const SnackBar(
-              content: Text('Neighbor Community is not ready yet'),
-            ),
-          ),
+        onGoToCommunity: () => context.push('/my-place/community'),
       ),
     );
   }

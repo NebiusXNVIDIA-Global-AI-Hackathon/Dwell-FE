@@ -65,6 +65,7 @@ abstract final class AppColors {
   static const insightCard = Color(0xFFEDEFF0); // Deaver's insight 배경
   static const insightBody = Color(0xFF3D4A57); // insight 본문
   static const chipSurface = Color(0xFFF5F5F5); // 태그 칩 배경
+  static const tagSelected = Color(0xFFD4DFEF); // 글쓰기에서 고른 태그 칩
   static const boardFreeSoft = Color(0xFFEAECE4); // Free Board 배지
   static const boardFreeText = Color(0xFF415F30);
   static const boardTipSoft = Color(0xFFF9F1C4); // Tip 배지

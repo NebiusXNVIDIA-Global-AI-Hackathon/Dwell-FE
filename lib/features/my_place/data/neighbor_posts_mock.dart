@@ -114,4 +114,89 @@ final mockNeighborPosts = <NeighborPost>[
     replyCount: 2,
     createdAt: DateTime(2026, 10, 8),
   ),
+  NeighborPost(
+    postId: 8,
+    board: PostBoard.tips,
+    floorBand: PostFloorBand.lower,
+    title: 'How I got my landlord to reply in 2 days',
+    preview: 'Sent a written notice citing §27-2005, then filed 311…',
+    body:
+        'Sent a written notice citing §27-2005 and gave a date to fix it by. '
+        'When nothing happened I filed 311 and attached the notice. They '
+        'called the next morning.',
+    tags: ['#dispute', '#notice'],
+    likeCount: 21,
+    replyCount: 9,
+    createdAt: DateTime(2026, 10, 10),
+  ),
+  NeighborPost(
+    postId: 9,
+    board: PostBoard.freeBoard,
+    floorBand: PostFloorBand.lower,
+    title: 'Mold showing up near the shower',
+    preview: 'Started a week after the leak. Anyone else?',
+    body:
+        'Started about a week after the leak upstairs. It is along the grout '
+        'line and comes back a few days after I scrub it.',
+    tags: ['#mold'],
+    likeCount: 5,
+    replyCount: 3,
+    createdAt: DateTime(2026, 10, 7),
+  ),
+  NeighborPost(
+    postId: 10,
+    board: PostBoard.freeBoard,
+    floorBand: PostFloorBand.lower,
+    title: "Is anyone else's water brown this morning?",
+    preview: 'Kitchen and bathroom both. Started around 7am.',
+    body:
+        'Kitchen and bathroom both ran brown for a few minutes. It cleared up '
+        'after running the tap, but I would rather know if it is the building.',
+    tags: ['#water'],
+    likeCount: 3,
+    replyCount: 5,
+    createdAt: DateTime(2026, 10, 12),
+  ),
+  NeighborPost(
+    postId: 20,
+    board: PostBoard.freeBoard,
+    floorBand: PostFloorBand.upper,
+    title: 'Pipe burst on floor 6 — water in the hallway',
+    preview: 'Super is on the way. Check your ceilings below 6F.',
+    body:
+        'A pipe burst in the hallway and the water ran toward the stairwell. '
+        'The super is on the way. Check your ceiling if you are below.',
+    tags: ['#pipeburst', '#floor6'],
+    likeCount: 11,
+    replyCount: 8,
+    createdAt: DateTime(2026, 10, 13),
+  ),
+  NeighborPost(
+    postId: 21,
+    board: PostBoard.freeBoard,
+    floorBand: PostFloorBand.upper,
+    title: 'Elevator out again since Monday',
+    preview: 'Third time this month. Has anyone reported it?',
+    body:
+        'Third time this month. If it is already reported I will add mine to '
+        'the same complaint instead of opening a new one.',
+    tags: ['#elevator'],
+    likeCount: 7,
+    replyCount: 4,
+    createdAt: DateTime(2026, 10, 6),
+  ),
+  NeighborPost(
+    postId: 22,
+    board: PostBoard.tips,
+    floorBand: PostFloorBand.middle,
+    title: 'Ceiling leak in bathroom — what I did',
+    preview: 'Photos with the date, then a written notice. It moved fast.',
+    body:
+        'Took a photo every morning with the date showing, sent a written '
+        'notice, and kept the reply. The repair was scheduled within a week.',
+    tags: ['#ceilingleak', '#tempfix'],
+    likeCount: 9,
+    replyCount: 2,
+    createdAt: DateTime(2026, 10, 2),
+  ),
 ];

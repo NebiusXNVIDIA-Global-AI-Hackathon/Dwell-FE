@@ -28,8 +28,15 @@ class NeighborPostCard extends StatelessWidget {
   final bool showTopic;
   final bool showDate;
 
+  /// 올린 직후에만 내 이름으로 보인다 — 지나면 다른 글처럼 층만 남는다
+  bool get _isFresh =>
+      DateTime.now().difference(post.createdAt) < const Duration(minutes: 1);
+
   @override
   Widget build(BuildContext context) {
+    final author = post.isMine && _isFresh
+        ? 'Me \u00B7 Just now'
+        : post.floorBand.label;
     final counts =
         '${post.likeCount} likes · ${post.replyCount} '
         '${post.replyCount == 1 ? 'reply' : 'replies'}';
@@ -47,10 +54,13 @@ class NeighborPostCard extends StatelessWidget {
           ),
           padding: compact
               ? const EdgeInsets.symmetric(horizontal: 14, vertical: Gap.card)
-              : const EdgeInsets.all(Gap.md),
+              : const EdgeInsets.symmetric(
+                  horizontal: Gap.md,
+                  vertical: Gap.card,
+                ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            spacing: compact ? 6 : Gap.card,
+            spacing: compact ? 6 : Gap.sm,
             children: [
               // 썸네일은 배지줄부터 미리보기까지를 끼고 선다
               Row(
@@ -68,7 +78,7 @@ class NeighborPostCard extends StatelessWidget {
                             PostBoardBadge(board: post.board),
                             Expanded(
                               child: Text(
-                                post.floorBand.label,
+                                author,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
@@ -128,7 +138,9 @@ class NeighborPostCard extends StatelessWidget {
               if (!compact)
                 Row(
                   children: [
+                    // 태그가 먼저다 — 좋아요 글자와 폭을 반씩 나누면 줄이 꺾인다
                     Expanded(
+                      flex: 3,
                       child: Wrap(
                         spacing: Gap.sm,
                         runSpacing: Gap.sm,
@@ -141,7 +153,7 @@ class NeighborPostCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: Gap.sm),
-                    Flexible(child: _Counts(text: counts)),
+                    Expanded(flex: 2, child: _Counts(text: counts)),
                   ],
                 ),
             ],
