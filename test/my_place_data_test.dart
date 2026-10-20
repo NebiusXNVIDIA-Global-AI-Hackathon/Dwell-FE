@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:dwell/features/my_place/data/insights_mock.dart';
 import 'package:dwell/features/my_place/models/landlord_post_query.dart';
 import 'package:dwell/features/my_place/models/neighbor_post.dart';
 import 'package:dwell/features/my_place/providers/my_place_providers.dart';
@@ -48,7 +49,8 @@ void main() {
 
   test('tenant summary counts come from the posts themselves', () async {
     final posts = container.read(landlordPostsProvider);
-    final summary = await container.read(landlordPostSummaryProvider.future);
+    // 목업 스위치와 무관하게 집계 규칙만 본다
+    final summary = buildLandlordPostSummary(posts);
 
     expect(summary.postCount, posts.length);
     expect(summary.previewPosts, hasLength(3));

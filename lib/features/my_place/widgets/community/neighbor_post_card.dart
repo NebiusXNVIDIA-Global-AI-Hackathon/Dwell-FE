@@ -45,10 +45,12 @@ class NeighborPostCard extends StatelessWidget {
             border: Border.all(color: AppColors.divider),
             borderRadius: BorderRadius.circular(Gap.sm),
           ),
-          padding: const EdgeInsets.all(Gap.md),
+          padding: compact
+              ? const EdgeInsets.symmetric(horizontal: 14, vertical: Gap.card)
+              : const EdgeInsets.all(Gap.md),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            spacing: Gap.card,
+            spacing: compact ? 6 : Gap.card,
             children: [
               // 썸네일은 배지줄부터 미리보기까지를 끼고 선다
               Row(
@@ -64,7 +66,7 @@ class NeighborPostCard extends StatelessWidget {
                           spacing: Gap.sm,
                           children: [
                             PostBoardBadge(board: post.board),
-                            Flexible(
+                            Expanded(
                               child: Text(
                                 post.floorBand.label,
                                 maxLines: 1,
@@ -76,7 +78,6 @@ class NeighborPostCard extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            if (showDate || compact) const Spacer(),
                             if (showDate)
                               Text(
                                 DateFormat('MMM d').format(post.createdAt),
@@ -86,7 +87,7 @@ class NeighborPostCard extends StatelessWidget {
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
-                            if (compact) _Counts(text: counts),
+                            if (compact) Flexible(child: _Counts(text: counts)),
                           ],
                         ),
                         Column(
@@ -106,7 +107,7 @@ class NeighborPostCard extends StatelessWidget {
                             ),
                             Text(
                               post.preview,
-                              maxLines: compact ? 2 : 1,
+                              maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 color: AppColors.textBody,
@@ -140,7 +141,7 @@ class NeighborPostCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: Gap.sm),
-                    _Counts(text: counts),
+                    Flexible(child: _Counts(text: counts)),
                   ],
                 ),
             ],
@@ -160,6 +161,9 @@ class _Counts extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      textAlign: TextAlign.right,
       style: const TextStyle(
         color: AppColors.iconGray,
         fontSize: 12,

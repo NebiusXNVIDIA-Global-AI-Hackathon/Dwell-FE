@@ -43,9 +43,16 @@ class LandlordPostQuery {
     this.size = 20,
   });
 
-  /// 적용 칩이 하나라도 있는지 — 검색어는 칩이 아니다
+  /// 조건이 하나라도 걸려 있는지 — 검색어는 조건이 아니다
   bool get hasFilters =>
       topics.isNotEmpty ||
+      issueTypes.isNotEmpty ||
+      floorBands.isNotEmpty ||
+      posted != null;
+
+  /// 주제 하나는 탭이 이미 보여준다 — 칩으로 띄울 조건만 따로 센다
+  bool get hasRefinements =>
+      topics.length > 1 ||
       issueTypes.isNotEmpty ||
       floorBands.isNotEmpty ||
       posted != null;

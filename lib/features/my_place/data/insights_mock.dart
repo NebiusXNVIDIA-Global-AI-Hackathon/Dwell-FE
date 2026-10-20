@@ -11,6 +11,9 @@ import '../models/owner_portfolio.dart';
 import '../models/records_insight.dart';
 import 'landlord_posts_mock.dart';
 
+/// 데이터 부족 화면을 눈으로 확인할 때만 true — 데모 전에 false 로 되돌린다
+const showLowDataDemo = false;
+
 const mockLandlordInsight = LandlordInsight(
   trackRecord: TrackRecord(
     rating: LandlordRating.slowToFix,
@@ -99,7 +102,7 @@ const mockRecordsInsightLowData = RecordsInsight(
   complaints: OpenClosedCount(total: 2, open: 0, closed: 2),
   violations: OpenClosedCount(total: 0, open: 0, closed: 0),
   minimumRequired: 3,
-  source: 'Source: NYC HPD · updated daily',
+  source: 'Source: NYC HPD · 2 records in 3 yrs',
 );
 
 // 12분기 — 민원 18 · 위반 7 로 Records 탭 합계와 맞춘다

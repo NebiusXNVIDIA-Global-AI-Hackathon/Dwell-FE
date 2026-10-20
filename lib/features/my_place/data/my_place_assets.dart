@@ -5,6 +5,9 @@ import '../models/issue_category.dart';
 /// 시그널 목록 대표 카드의 Deaver 일러스트
 const signalPatternIllustration = 'assets/images/deaver_building_signal.png';
 
+/// 자료가 모자랄 때 쓰는 Deaver 일러스트
+const deaverInspection = 'assets/images/beaver_inspection.png';
+
 /// 이슈 카테고리 아이콘 — New Case 위저드와 같은 에셋을 쓴다
 const _issueIcons = <IssueCategory, String>{
   IssueCategory.heatHotWater: 'assets/icons/issues/heat.svg',

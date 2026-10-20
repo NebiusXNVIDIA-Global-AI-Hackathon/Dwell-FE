@@ -6,7 +6,11 @@ import '../features/assistant/assistant_page.dart';
 import '../features/home/home_page.dart';
 import '../features/my_page/my_page.dart';
 import '../features/my_place/my_place_page.dart';
+import '../features/my_place/pages/building_insights_page.dart';
 import '../features/my_place/pages/building_signals_list_page.dart';
+import '../features/my_place/pages/hpd_history_page.dart';
+import '../features/my_place/pages/landlord_posts_page.dart';
+import '../features/my_place/pages/owner_buildings_page.dart';
 import '../features/my_place/pages/building_signals_page.dart';
 import '../features/my_place/pages/check_my_unit_page.dart';
 import '../features/assistant/pages/bring_in_case_page.dart';
@@ -151,6 +155,22 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
       // 시그널 목록 · 상세 · 내 집 확인 — 하단바 없음
+      GoRoute(
+        path: '/my-place/insights/hpd',
+        builder: (context, state) => const HpdHistoryPage(),
+      ),
+      GoRoute(
+        path: '/my-place/insights/owner-buildings',
+        builder: (context, state) => const OwnerBuildingsPage(),
+      ),
+      GoRoute(
+        path: '/my-place/insights/landlord-posts',
+        builder: (context, state) => const LandlordPostsPage(),
+      ),
+      GoRoute(
+        path: '/my-place/insights',
+        builder: (context, state) => const BuildingInsightsPage(),
+      ),
       GoRoute(
         path: '/my-place/signals',
         builder: (context, state) => const BuildingSignalsListPage(),
