@@ -130,11 +130,17 @@ class _LandlordPostsPageState extends ConsumerState<LandlordPostsPage> {
                         itemCount: data.content.length,
                         separatorBuilder: (context, index) =>
                             const SizedBox(height: 10),
-                        itemBuilder: (context, index) => NeighborPostCard(
-                          post: data.content[index],
-                          showTopic: true,
-                          showDate: true,
-                        ),
+                        itemBuilder: (context, index) {
+                          final post = data.content[index];
+                          return NeighborPostCard(
+                            post: post,
+                            showTopic: true,
+                            showDate: true,
+                            onTap: () => context.push(
+                              '/my-place/community/post/${post.postId}',
+                            ),
+                          );
+                        },
                       ),
               ),
             ),
