@@ -6,6 +6,9 @@ import '../features/assistant/assistant_page.dart';
 import '../features/home/home_page.dart';
 import '../features/my_page/my_page.dart';
 import '../features/my_place/my_place_page.dart';
+import '../features/my_place/pages/building_signals_list_page.dart';
+import '../features/my_place/pages/building_signals_page.dart';
+import '../features/my_place/pages/check_my_unit_page.dart';
 import '../features/assistant/pages/bring_in_case_page.dart';
 import '../features/assistant/pages/chat_page.dart';
 import '../features/cases/pages/cases_page.dart';
@@ -146,6 +149,23 @@ final routerProvider = Provider<GoRouter>((ref) {
                 CaseCreatedPage(result: state.extra! as CaseCreationResult),
           ),
         ],
+      ),
+      // 시그널 목록 · 상세 · 내 집 확인 — 하단바 없음
+      GoRoute(
+        path: '/my-place/signals',
+        builder: (context, state) => const BuildingSignalsListPage(),
+      ),
+      GoRoute(
+        path: '/my-place/signals/:signalId',
+        builder: (context, state) => BuildingSignalsPage(
+          signalId: int.tryParse(state.pathParameters['signalId'] ?? '') ?? 0,
+        ),
+      ),
+      GoRoute(
+        path: '/my-place/check-unit/:signalId',
+        builder: (context, state) => CheckMyUnitPage(
+          signalId: int.tryParse(state.pathParameters['signalId'] ?? '') ?? 0,
+        ),
       ),
       // Bring in a case — 하단바 없음
       GoRoute(
