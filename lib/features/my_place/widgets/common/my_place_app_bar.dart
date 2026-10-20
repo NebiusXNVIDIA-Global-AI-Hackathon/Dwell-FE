@@ -65,9 +65,9 @@ class MyPlaceAppBar extends StatelessWidget {
                   Text(
                     subtitle!,
                     style: const TextStyle(
-                      color: AppColors.textSubtle,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                      color: AppColors.iconGray,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
                       height: 1.3,
                     ),
                   ),
