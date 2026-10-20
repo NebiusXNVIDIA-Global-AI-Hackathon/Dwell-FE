@@ -5,6 +5,9 @@ import '../models/issue_category.dart';
 /// 시그널 목록 대표 카드의 Deaver 일러스트
 const signalPatternIllustration = 'assets/images/deaver_building_signal.png';
 
+/// 댓글 입력창 전송 버튼 — 루시드에 같은 모양이 없어 와프에서 내보낸다
+const commentSendIconPath = 'assets/icons/community/send.svg';
+
 /// 자료가 모자랄 때 쓰는 Deaver 일러스트
 const deaverInspection = 'assets/images/beaver_inspection.png';
 

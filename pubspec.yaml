@@ -95,6 +95,7 @@ flutter:
     - assets/icons/bottom_nav/
     - assets/icons/case/
     - assets/icons/chat/
+    - assets/icons/community/
     - assets/icons/issues/
     - assets/icons/areas/
 
