@@ -12,6 +12,11 @@ import '../features/my_place/pages/hpd_history_page.dart';
 import '../features/my_place/pages/landlord_posts_page.dart';
 import '../features/my_place/pages/owner_buildings_page.dart';
 import '../features/my_place/pages/building_signals_page.dart';
+import '../features/my_place/pages/community_search_page.dart';
+import '../features/my_place/pages/neighbor_community_page.dart';
+import '../features/my_place/pages/post_detail_page.dart';
+import '../features/my_place/pages/post_editor_page.dart';
+import '../features/my_place/pages/tag_posts_page.dart';
 import '../features/my_place/pages/check_my_unit_page.dart';
 import '../features/assistant/pages/bring_in_case_page.dart';
 import '../features/assistant/pages/chat_page.dart';
@@ -153,6 +158,36 @@ final routerProvider = Provider<GoRouter>((ref) {
                 CaseCreatedPage(result: state.extra! as CaseCreationResult),
           ),
         ],
+      ),
+      // 커뮤니티 — 하단바 없음
+      GoRoute(
+        path: '/my-place/community',
+        builder: (context, state) => const NeighborCommunityPage(),
+      ),
+      GoRoute(
+        path: '/my-place/community/search',
+        builder: (context, state) => const CommunitySearchPage(),
+      ),
+      GoRoute(
+        path: '/my-place/community/new',
+        builder: (context, state) => const PostEditorPage(),
+      ),
+      GoRoute(
+        path: '/my-place/community/tags/:tag',
+        builder: (context, state) =>
+            TagPostsPage(tag: state.pathParameters['tag'] ?? ''),
+      ),
+      GoRoute(
+        path: '/my-place/community/post/:postId',
+        builder: (context, state) => PostDetailPage(
+          postId: int.tryParse(state.pathParameters['postId'] ?? '') ?? 0,
+        ),
+      ),
+      GoRoute(
+        path: '/my-place/community/post/:postId/edit',
+        builder: (context, state) => PostEditorPage(
+          postId: int.tryParse(state.pathParameters['postId'] ?? '') ?? 0,
+        ),
       ),
       // 시그널 목록 · 상세 · 내 집 확인 — 하단바 없음
       GoRoute(
