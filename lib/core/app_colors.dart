@@ -45,6 +45,10 @@ abstract final class AppColors {
   static const chartNeutral = Color(0xFF9AA3AE); // Class A
   static const chartTrack = Color(0xFFECEEF1); // 트랙 · 빈 영역 · 중립 배지
 
+  static const statTile = Color(0xFFF7F7F8); // Insights 스탯 타일 바탕
+  static const filterChip = Color(0xFFD3D8DD); // 필터 시트 비선택 칩
+  static const applyAction = Color(0xFF2B575F); // 필터 적용 버튼
+
   // 연한 배경 — 타일 · 칩
   static const dangerSoft = Color(0xFFF6D4D4);
   static const warningSoft = Color(0xFFF8E3C8);
