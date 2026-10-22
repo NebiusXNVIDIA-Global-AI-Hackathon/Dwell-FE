@@ -18,12 +18,17 @@ import '../widgets/list/case_filter_tabs.dart';
 import '../widgets/list/case_search_field.dart';
 import '../widgets/list/case_search_tabs.dart';
 import '../widgets/list/case_sort_menu.dart';
+import '../../case_detail/models/case_deletion_notice.dart';
+import '../../case_detail/presentation/case_detail_routes.dart';
+import '../../case_detail/presentation/case_detail_tokens.dart';
+import '../../case_detail/presentation/widgets/case_deleted_toast.dart';
 
 import 'package:go_router/go_router.dart';
 
 class CasesPage extends ConsumerStatefulWidget {
-  const CasesPage({super.key, this.creationNotice});
+  const CasesPage({super.key, this.creationNotice, this.deletionNotice});
   final ReportsCreationNotice? creationNotice;
+  final CaseDeletionNotice? deletionNotice;
 
   @override
   ConsumerState<CasesPage> createState() => _CasesPageState();
@@ -36,6 +41,7 @@ class _CasesPageState extends ConsumerState<CasesPage> {
   CaseSortOrder _selectedSortOrder = CaseSortOrder.newest;
   String? _selectedCaseId;
   ReportsCreationNotice? _toastNotice;
+  CaseDeletionNotice? _deletionToast;
   GoRouter? _router;
 
   void _acceptNotice() {
@@ -46,10 +52,17 @@ class _CasesPageState extends ConsumerState<CasesPage> {
     }
   }
 
+  // Show the toast once after a case is deleted
+  void _acceptDeletion() {
+    final notice = widget.deletionNotice;
+    if (notice != null && notice.consume()) _deletionToast = notice;
+  }
+
   @override
   void initState() {
     super.initState();
     _acceptNotice();
+    _acceptDeletion();
   }
 
   @override
@@ -58,6 +71,9 @@ class _CasesPageState extends ConsumerState<CasesPage> {
     if (oldWidget.creationNotice != widget.creationNotice) {
       _toastNotice = null;
       _acceptNotice();
+    }
+    if (oldWidget.deletionNotice != widget.deletionNotice) {
+      _acceptDeletion();
     }
   }
 
@@ -415,6 +431,14 @@ class _CasesPageState extends ConsumerState<CasesPage> {
                                                 setState(() {
                                                   _selectedCaseId = item.id;
                                                 });
+                                                // Open Case Detail
+                                                _router?.pushNamed(
+                                                  CaseDetailRoutes.detail,
+                                                  pathParameters:
+                                                      CaseDetailRoutes.params(
+                                                        item.id,
+                                                      ),
+                                                );
                                               },
                                             ),
                                           ),
@@ -437,6 +461,24 @@ class _CasesPageState extends ConsumerState<CasesPage> {
                               onDismissed: () {
                                 if (mounted && _toastNotice == notice) {
                                   setState(() => _toastNotice = null);
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                      if (_deletionToast case final notice?)
+                        Positioned(
+                          top: CaseDetailSizes.toastTop,
+                          left: 16,
+                          right: 16,
+                          child: Align(
+                            alignment: Alignment.topCenter,
+                            child: CaseDeletedToast(
+                              key: ObjectKey(notice),
+                              message: notice.message,
+                              onDismissed: () {
+                                if (mounted && _deletionToast == notice) {
+                                  setState(() => _deletionToast = null);
                                 }
                               },
                             ),

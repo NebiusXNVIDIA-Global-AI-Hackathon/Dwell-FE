@@ -5,6 +5,7 @@ import 'package:dwell/features/home/widgets/current_case_card.dart';
 import 'package:dwell/features/cases/data/mock_cases.dart';
 import 'package:dwell/features/cases/models/case_model.dart';
 import 'package:dwell/core/widgets/bottom_nav_bar.dart';
+import 'package:dwell/features/case_detail/presentation/screens/case_detail_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
@@ -195,7 +196,7 @@ void main() {
   }
 
   testWidgets(
-    'View Case keeps list routing, passes selected ID and never adds demo cases',
+    'View Case opens Case Detail for the selected ID and never adds demo cases',
     (tester) async {
       final h = await openHome(tester);
       final count = mockCases.length;
@@ -218,8 +219,8 @@ void main() {
       );
       await gesture.up();
       await tester.pumpAndSettle();
-      expect(h.router.routeInformationProvider.value.uri.path, '/cases');
-      expect(h.router.state.extra, 'C-005');
+      expect(find.byType(CaseDetailScreen), findsOneWidget);
+      expect(h.router.state.pathParameters['caseId'], 'C-005');
       expect(mockCases.length, count);
     },
   );

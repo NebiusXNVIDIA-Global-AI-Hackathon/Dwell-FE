@@ -35,6 +35,11 @@ import '../features/cases/models/reports_creation_notice.dart';
 import '../features/cases/pages/case_created_page.dart';
 import '../features/cases/controllers/mock_evidence_check_controller.dart'
     show mockEvidenceCheckPolicy;
+import '../features/case_detail/models/case_deletion_notice.dart';
+import '../features/case_detail/presentation/case_detail_routes.dart';
+import '../features/case_detail/presentation/screens/case_detail_screen.dart';
+import '../features/case_detail/presentation/screens/case_placeholder_screen.dart';
+import '../features/case_detail/presentation/screens/case_timeline_screen.dart';
 import 'layouts/main_layout.dart';
 
 // 화면 추가 시 여기 GoRoute 도 추가
@@ -159,6 +164,39 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
+      // Case detail without the bottom bar
+      GoRoute(
+        path: '/cases/:caseId',
+        name: CaseDetailRoutes.detail,
+        builder: (context, state) =>
+            CaseDetailScreen(caseId: state.pathParameters['caseId']!),
+        routes: [
+          GoRoute(
+            path: 'timeline',
+            name: CaseDetailRoutes.timeline,
+            builder: (context, state) =>
+                CaseTimelineScreen(caseId: state.pathParameters['caseId']!),
+          ),
+          GoRoute(
+            path: 'analysis',
+            name: CaseDetailRoutes.analysis,
+            builder: (_, _) =>
+                const CasePlaceholderScreen(title: 'Case Analysis'),
+          ),
+          GoRoute(
+            path: 'notice',
+            name: CaseDetailRoutes.notice,
+            builder: (_, _) =>
+                const CasePlaceholderScreen(title: 'Send a Notice'),
+          ),
+          GoRoute(
+            path: 'evidence/new',
+            name: CaseDetailRoutes.addEvidence,
+            builder: (_, _) =>
+                const CasePlaceholderScreen(title: 'Add Evidence'),
+          ),
+        ],
+      ),
       // 커뮤니티 — 하단바 없음
       GoRoute(
         path: '/my-place/community',
@@ -260,6 +298,9 @@ final routerProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) => CasesPage(
                   creationNotice: state.extra is ReportsCreationNotice
                       ? state.extra! as ReportsCreationNotice
+                      : null,
+                  deletionNotice: state.extra is CaseDeletionNotice
+                      ? state.extra! as CaseDeletionNotice
                       : null,
                 ),
               ),
