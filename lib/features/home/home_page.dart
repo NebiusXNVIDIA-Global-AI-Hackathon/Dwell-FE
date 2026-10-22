@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/widgets/app_screen_header.dart';
+import '../case_detail/presentation/case_detail_routes.dart';
 import 'data/home_mock_data.dart';
 import 'data/home_cases_provider.dart';
 import 'widgets/current_case_card.dart';
@@ -117,10 +118,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 if (widget.onViewCase case final callback?) {
                                   callback(selected.number);
                                 } else {
-                                  // Existing destination is the list, not Case Detail.
-                                  context.goNamed(
-                                    'cases',
-                                    extra: selected.number,
+                                  // Open Case Detail for the selected case
+                                  context.pushNamed(
+                                    CaseDetailRoutes.detail,
+                                    pathParameters: CaseDetailRoutes.params(
+                                      selected.number,
+                                    ),
                                   );
                                 }
                               },

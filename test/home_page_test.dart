@@ -11,6 +11,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:dwell/features/case_detail/presentation/screens/case_detail_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -165,6 +166,9 @@ void main() {
       final view = find.widgetWithText(FilledButton, 'View Case');
       await tester.ensureVisible(view);
       await tester.tap(view);
+      await tester.pumpAndSettle();
+      expect(find.byType(CaseDetailScreen), findsOneWidget);
+      h.router.go('/cases');
       await tester.pumpAndSettle();
       expect(h.router.routeInformationProvider.value.uri.path, '/cases');
       expect(
