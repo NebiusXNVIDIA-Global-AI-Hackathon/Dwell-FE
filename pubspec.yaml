@@ -98,7 +98,7 @@ flutter:
     - assets/icons/community/
     - assets/icons/issues/
     - assets/icons/areas/
-    - assets/icons/caseDetail/
+    - assets/icons/case_detail/
 
   fonts:
     - family: Pretendard Variable
