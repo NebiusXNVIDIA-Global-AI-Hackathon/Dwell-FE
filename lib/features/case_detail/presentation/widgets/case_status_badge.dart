@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../../cases/models/case_model.dart';
 import '../../../home/data/home_severity_colors.dart';
+import '../../models/case_stage.dart';
 import '../case_detail_format.dart';
 import '../case_detail_tokens.dart';
 
@@ -13,10 +14,14 @@ class CaseStatusBadge extends StatelessWidget {
     required this.foreground,
   });
 
-  factory CaseStatusBadge.status(CaseStatus status) => CaseStatusBadge(
-    label: CaseDetailFormat.status(status),
-    background: CaseDetailColors.divider,
-    foreground: CaseDetailColors.body,
+  factory CaseStatusBadge.stage(CaseStageBadge badge) => CaseStatusBadge(
+    label: CaseDetailFormat.stageBadge(badge),
+    background: badge == CaseStageBadge.inProgress
+        ? CaseDetailColors.inProgressSoft
+        : CaseDetailColors.divider,
+    foreground: badge == CaseStageBadge.inProgress
+        ? CaseDetailColors.inProgressText
+        : CaseDetailColors.body,
   );
 
   // High follows Figma; Medium and Low reuse the Home severity palette

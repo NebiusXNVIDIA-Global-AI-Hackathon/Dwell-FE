@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../../../core/theme.dart';
 import '../../models/case_detail.dart';
+import '../../models/case_stage.dart';
 import '../case_detail_format.dart';
 import '../case_detail_tokens.dart';
 import 'case_status_badge.dart';
@@ -43,7 +44,7 @@ class CaseHeader extends StatelessWidget {
           const SizedBox(height: Gap.card),
           Row(
             children: [
-              CaseStatusBadge.status(detail.status),
+              CaseStatusBadge.stage(detail.stage.badge),
               const SizedBox(width: Gap.sm),
               CaseStatusBadge.priority(detail.priority),
               const SizedBox(width: Gap.sm),

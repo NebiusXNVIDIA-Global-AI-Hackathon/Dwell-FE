@@ -1,6 +1,7 @@
 import 'package:intl/intl.dart';
 
 import '../../cases/models/case_model.dart';
+import '../models/case_stage.dart';
 
 abstract final class CaseDetailFormat {
   static String ordinal(int day) {
@@ -43,5 +44,33 @@ abstract final class CaseDetailFormat {
     CaseSeverity.low => 'Low',
     CaseSeverity.medium => 'Medium',
     CaseSeverity.high => 'High',
+  };
+
+  static String stageBadge(CaseStageBadge badge) => switch (badge) {
+    CaseStageBadge.logged => 'Logged',
+    CaseStageBadge.inProgress => 'In Progress',
+    CaseStageBadge.resolved => 'Resolved',
+  };
+
+  static String stage(CaseStage stage) => switch (stage) {
+    CaseStage.created => 'Case created',
+    CaseStage.waitingResponse => 'Waiting for response',
+    CaseStage.responseOverdue => 'Response overdue',
+    CaseStage.scheduling => 'Scheduling the repair',
+    CaseStage.followUpWaiting => 'Follow-up sent',
+    CaseStage.followUpOverdue => 'Follow-up overdue',
+    CaseStage.repairScheduled => 'Repair scheduled',
+    CaseStage.repairDay => 'Repair day',
+    CaseStage.repairInProgress => 'Repair in progress',
+    CaseStage.landlordRefused => 'Landlord refused',
+    CaseStage.blameShifting => 'Landlord blames you',
+    CaseStage.reported311 => 'Reported to 311',
+    CaseStage.hpdInspection => 'HPD inspection',
+    CaseStage.violationIssued => 'Violation issued',
+    CaseStage.resolved => 'Resolved',
+    CaseStage.recurred => 'Recurred',
+    CaseStage.selfRepair => 'Repairing it yourself',
+    CaseStage.repairCostClaim => 'Repair cost claim',
+    CaseStage.insuranceClaim => 'Insurance claim',
   };
 }
