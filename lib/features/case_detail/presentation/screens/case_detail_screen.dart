@@ -7,8 +7,8 @@ import '../../../../core/theme.dart';
 import '../../models/case_deletion_notice.dart';
 import '../../models/case_detail.dart';
 import '../../models/checklist_item.dart';
+import '../../models/status_banner.dart';
 import '../../state/case_detail_controller.dart';
-import '../case_detail_format.dart';
 import '../case_detail_routes.dart';
 import '../case_detail_tokens.dart';
 import '../widgets/add_checklist_tile.dart';
@@ -16,11 +16,13 @@ import '../widgets/case_detail_app_bar.dart';
 import '../widgets/case_header.dart';
 import '../widgets/case_overflow_menu.dart';
 import '../widgets/case_section_header.dart';
+import '../widgets/case_stage_sheet.dart';
 import '../widgets/case_timeline.dart';
 import '../widgets/checklist_item_tile.dart';
 import '../widgets/current_status_card.dart';
 import '../widgets/delete_case_dialog.dart';
 import '../widgets/evidence_folder_card.dart';
+import 'case_placeholder_screen.dart';
 
 class CaseDetailScreen extends ConsumerStatefulWidget {
   const CaseDetailScreen({super.key, required this.caseId});
@@ -102,6 +104,42 @@ class _CaseDetailScreenState extends ConsumerState<CaseDetailScreen> {
     _controller.remove(id);
   }
 
+  // Route the banner button by its action type
+  void _runAction(CaseDetail detail) {
+    final action = detail.banner.action;
+    switch (action.type) {
+      case StatusActionType.sendNotice:
+        _push(CaseDetailRoutes.notice);
+      case StatusActionType.addPhotos:
+        _push(CaseDetailRoutes.addEvidence);
+      case StatusActionType.talkToDeaver:
+        context.pushNamed(
+          'assistant-chat',
+          pathParameters: {'caseNo': detail.caseNumber},
+        );
+      case StatusActionType.updateStatus:
+        _changeStage(detail);
+      case StatusActionType.addToCalendar ||
+          StatusActionType.escalate ||
+          StatusActionType.saveReport ||
+          StatusActionType.sendClaim:
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => CasePlaceholderScreen(title: action.label),
+          ),
+        );
+    }
+  }
+
+  // Pick a new stage from the sheet
+  Future<void> _changeStage(CaseDetail detail) async {
+    final stage = await CaseStageSheet.show(context, detail.stage);
+    if (stage == null || !mounted) return;
+    _finishEditing();
+    setState(() => _editMode = false);
+    _controller.setStage(stage);
+  }
+
   Future<void> _deleteCase() async {
     final confirmed = await DeleteCaseDialog.show(context);
     if (!confirmed || !mounted) return;
@@ -152,12 +190,8 @@ class _CaseDetailScreenState extends ConsumerState<CaseDetailScreen> {
                     CaseHeader(detail: detail),
                     const SizedBox(height: CaseDetailGaps.headerToStatus),
                     CurrentStatusCard(
-                      statusText: detail.currentStatusText,
-                      createdText: CaseDetailFormat.createdLong(
-                        detail.createdAt,
-                      ),
-                      illustrationPath: detail.statusIllustrationPath,
-                      onSendNotice: () => _push(CaseDetailRoutes.notice),
+                      banner: detail.banner,
+                      onAction: () => _runAction(detail),
                     ),
                     const SizedBox(height: CaseDetailGaps.statusToTimeline),
                     Padding(
@@ -188,6 +222,8 @@ class _CaseDetailScreenState extends ConsumerState<CaseDetailScreen> {
         const SizedBox(height: CaseDetailGaps.titleToTimeline),
         CaseTimeline(
           steps: detail.timeline,
+          hasEarlierSteps: detail.timelineHasEarlierSteps,
+          bleedStart: CaseDetailSizes.pageInset,
           bleedEnd: CaseDetailSizes.pageInset,
         ),
         const SizedBox(height: CaseDetailGaps.timelineToChecklist),
