@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/case_detail_mock.dart';
 import '../models/case_detail.dart';
+import '../models/case_stage.dart';
 import '../models/checklist_item.dart';
 import 'deleted_cases_provider.dart';
 
@@ -57,6 +58,13 @@ class CaseDetailController extends Notifier<CaseDetail?> {
         if (item.id != id) item,
     ],
   );
+
+  // Move the case to another stage and reset the stage checklist
+  void setStage(CaseStage stage) {
+    final detail = state;
+    if (detail == null || detail.stage == stage) return;
+    state = withStage(detail, stage);
+  }
 
   // Remove the case from the mock data
   void deleteCase() => ref.read(deletedCaseIdsProvider.notifier).add(caseId);

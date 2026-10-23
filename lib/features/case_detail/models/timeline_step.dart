@@ -1,4 +1,4 @@
-enum TimelineStepState { completed, current, upcoming }
+enum TimelineStepState { completed, current, alert, upcoming, preview }
 
 class TimelineStepData {
   const TimelineStepData({
@@ -14,4 +14,9 @@ class TimelineStepData {
   final String? eventTitle;
   final String? description;
   final DateTime? occurredAt;
+
+  bool get isReached =>
+      state == TimelineStepState.completed ||
+      state == TimelineStepState.current ||
+      state == TimelineStepState.alert;
 }

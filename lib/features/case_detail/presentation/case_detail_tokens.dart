@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../../core/app_colors.dart';
 import '../../../core/theme.dart';
+import '../models/status_banner.dart';
 
 abstract final class CaseDetailColors {
   static const navy = AppColors.navy;
@@ -17,10 +18,18 @@ abstract final class CaseDetailColors {
   static const statusPanel = AppColors.insightCard;
   static const swipeDelete = AppColors.danger;
   static const warningText = AppColors.warningText;
+  static const inProgressSoft = AppColors.tagSelected;
+  static const inProgressText = AppColors.link;
 
   static const destructive = Color(0xFFFF0000);
   static const highSoft = Color(0xFFE8ACA7);
   static const highText = Color(0xFFC60202);
+  static const alert = Color(0xFFDE0505);
+  static const recurring = Color(0xFF2600A4);
+  static const success = Color(0xFF1D6D12);
+  static const deadlineTrack = Color(0xFFF9E3C4);
+  static const previewBorder = Color(0xFFE8E8E8);
+  static const previewLabel = Color(0x33CED2D7);
   static const track = Color(0xFFD6D6D6);
   static const upcomingLabel = Color(0xFF647484);
   static const eventLine = Color(0xFFC2D4D7);
@@ -32,6 +41,15 @@ abstract final class CaseDetailColors {
   static const dim = Color(0x33000000);
   static const cardShadow = Color(0x1A000000);
   static const floatShadow = Color(0x40000000);
+}
+
+extension StatusToneColor on StatusTone {
+  Color get color => switch (this) {
+    StatusTone.notice => CaseDetailColors.notice,
+    StatusTone.alert => CaseDetailColors.alert,
+    StatusTone.recurring => CaseDetailColors.recurring,
+    StatusTone.success => CaseDetailColors.success,
+  };
 }
 
 // Figma 390 × 844 values rounded to the nearest multiple of 4.
@@ -51,7 +69,10 @@ abstract final class CaseDetailSizes {
   static const badgeHeight = 24.0;
   static const badgePadding = Gap.card;
 
-  static const illustrationWidth = 132.0;
+  static const illustrationBottomCut = Gap.xs;
+  static const bannerEndInset = Gap.card;
+  static const wideButtonInset = Gap.screenH;
+  static const deadlineHeight = 16.0;
   static const noticeButtonHeight = 32.0;
 
   static const timelineNode = 20.0;
@@ -63,6 +84,7 @@ abstract final class CaseDetailSizes {
   static const timelineSpacing = 104.0;
   static const timelineLabelWidth = 120.0;
   static const timelineFadeStop = 0.4;
+  static const timelineAlertStop = 0.6;
   static const linkIcon = 16.0;
 
   static const checklistHeight = 44.0;
@@ -92,6 +114,9 @@ abstract final class CaseDetailSizes {
   static const menuItemHeight = 48.0;
   static const menuItemIcon = 16.0;
   static const menuRadius = Gap.sm;
+
+  static const sheetRadius = Gap.screenH;
+  static const sheetMaxHeightFactor = 0.7;
 
   static const dialogWidth = 320.0;
   static const dialogInset = 32.0;
@@ -173,6 +198,17 @@ abstract final class CaseDetailText {
     fontSize: 12,
     fontWeight: FontWeight.w600,
     letterSpacing: -0.36,
+  );
+  static const deadline = TextStyle(
+    color: CaseDetailColors.notice,
+    fontSize: 12,
+    fontWeight: FontWeight.w600,
+  );
+  static const alertMark = TextStyle(
+    color: CaseDetailColors.surface,
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    height: 1,
   );
   static const timelineDate = TextStyle(
     color: CaseDetailColors.body,

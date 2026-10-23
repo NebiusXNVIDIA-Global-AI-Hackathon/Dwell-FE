@@ -91,6 +91,7 @@ flutter:
   assets:
     - assets/images/
     - assets/images/evidence_guide/
+    - assets/images/case_detail/
     - assets/icons/
     - assets/icons/bottom_nav/
     - assets/icons/case/

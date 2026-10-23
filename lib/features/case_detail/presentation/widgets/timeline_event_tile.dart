@@ -37,7 +37,7 @@ class TimelineEventTile extends StatelessWidget {
                   height: CaseDetailSizes.eventDotTop,
                   child: isFirst ? null : line,
                 ),
-                _EventDot(current: step.state == TimelineStepState.current),
+                _EventDot(state: step.state),
                 Expanded(child: isLast ? const SizedBox.shrink() : line),
               ],
             ),
@@ -58,7 +58,7 @@ class TimelineEventTile extends StatelessWidget {
                       style: CaseDetailText.eventDate,
                     ),
                   Text(
-                    step.eventTitle ?? step.label,
+                    step.eventTitle ?? step.label.replaceAll('\n', ' '),
                     style: CaseDetailText.eventTitle,
                   ),
                   if (step.description case final description?)
@@ -74,9 +74,9 @@ class TimelineEventTile extends StatelessWidget {
 }
 
 class _EventDot extends StatelessWidget {
-  const _EventDot({required this.current});
+  const _EventDot({required this.state});
 
-  final bool current;
+  final TimelineStepState state;
 
   @override
   Widget build(BuildContext context) {
@@ -84,11 +84,13 @@ class _EventDot extends StatelessWidget {
       width: CaseDetailSizes.eventDot,
       height: CaseDetailSizes.eventDot,
       alignment: Alignment.center,
-      decoration: const BoxDecoration(
-        color: CaseDetailColors.accent,
+      decoration: BoxDecoration(
+        color: state == TimelineStepState.alert
+            ? CaseDetailColors.highText
+            : CaseDetailColors.accent,
         shape: BoxShape.circle,
       ),
-      child: current
+      child: state == TimelineStepState.current
           ? Container(
               width: CaseDetailSizes.eventInnerDot,
               height: CaseDetailSizes.eventInnerDot,
