@@ -2,17 +2,12 @@ import '../../cases/data/mock_cases.dart';
 import '../../cases/models/case_model.dart';
 import '../../home/data/home_mock_data.dart';
 import '../models/case_detail.dart';
-import '../models/timeline_step.dart';
+import '../models/case_stage.dart';
 import '../models/checklist_item.dart';
 import '../models/evidence_group.dart';
+import 'case_stage_mock.dart';
 
 const mockCaseAddress = '123 Main St, Apt 4B';
-
-const _mockChecklist = [
-  'Send written notice to your landlord',
-  'Take timestamped photos of the issue',
-  'Note when it’s getting worse',
-];
 
 // Look up a case from the Reports and Home mock sources
 CaseDetail? findMockCaseDetail(String caseId) {
@@ -29,6 +24,8 @@ CaseDetail mockCaseDetailFrom(CaseModel item) {
   final createdAt = item.createdAt.hour == 0
       ? item.createdAt.add(const Duration(hours: 10))
       : item.createdAt;
+  final stage = initialStageFor(item.id);
+  final content = caseStageContent(stage, createdAt: createdAt);
 
   return CaseDetail(
     id: item.id,
@@ -40,30 +37,11 @@ CaseDetail mockCaseDetailFrom(CaseModel item) {
     status: item.status,
     priority: item.severity,
     createdAt: createdAt,
-    currentStatusText: 'Ready to notify your landlord',
-    timeline: [
-      TimelineStepData(
-        label: 'Case\nCreated',
-        state: TimelineStepState.completed,
-        eventTitle: 'Case Created',
-        description: 'You documented the leak in your bathroom ceiling with 2 photos and 1 video.',
-        occurredAt: createdAt.add(const Duration(hours: 10, minutes: 12)),
-      ),
-      const TimelineStepData(
-        label: 'Notified\nLandlord',
-        state: TimelineStepState.current,
-        eventTitle: 'Landlord Notified',
-        description: 'Sent by text to John Smith (Landlord). Included the issue, location, date first noticed and evidence.',
-      ),
-      const TimelineStepData(
-        label: 'Waiting for\nLandlord’s Response',
-        state: TimelineStepState.upcoming,
-      ),
-    ],
-    checklist: [
-      for (final (index, text) in _mockChecklist.indexed)
-        ChecklistItem(id: '${item.id}-check-$index', text: text),
-    ],
+    stage: stage,
+    banner: content.banner,
+    timeline: content.timeline,
+    timelineHasEarlierSteps: content.timelineHasEarlierSteps,
+    checklist: _checklist(item.id, stage, content.checklist),
     evidence: [
       EvidenceGroup(
         id: '${item.id}-evidence-0',
@@ -73,6 +51,27 @@ CaseDetail mockCaseDetailFrom(CaseModel item) {
     ],
   );
 }
+
+// Swap in the banner, timeline and checklist for a stage
+CaseDetail withStage(CaseDetail detail, CaseStage stage) {
+  final content = caseStageContent(stage, createdAt: detail.createdAt);
+  return detail.copyWith(
+    stage: stage,
+    banner: content.banner,
+    timeline: content.timeline,
+    timelineHasEarlierSteps: content.timelineHasEarlierSteps,
+    checklist: _checklist(detail.id, stage, content.checklist),
+  );
+}
+
+List<ChecklistItem> _checklist(
+  String caseId,
+  CaseStage stage,
+  List<String> texts,
+) => [
+  for (final (index, text) in texts.indexed)
+    ChecklistItem(id: '$caseId-${stage.name}-$index', text: text),
+];
 
 String _caseNumber(String id) {
   if (id.startsWith('C-')) return id;
