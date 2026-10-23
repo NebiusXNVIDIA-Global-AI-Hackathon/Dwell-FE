@@ -19,7 +19,7 @@ class CaseTimelineScreen extends ConsumerWidget {
     final detail = ref.watch(caseDetailProvider(caseId));
     final events = [
       for (final step in detail?.timeline ?? const <TimelineStepData>[])
-        if (step.state != TimelineStepState.upcoming) step,
+        if (step.isReached) step,
     ];
 
     return Scaffold(
